@@ -164,6 +164,8 @@ class Media3PlayerBackend implements PlayerBackend {
     if (_disposed || url.isEmpty) return;
 
     final mediaType = payload['mediaType']?.toString() ?? 'video';
+    final container = payload['container']?.toString();
+    final videoRangeType = payload['videoRangeType']?.toString();
     final normalizationGainDb = (payload['normalizationGainDb'] as num?)
         ?.toDouble();
     final headers = payload['headers'] is Map
@@ -183,6 +185,8 @@ class Media3PlayerBackend implements PlayerBackend {
       'url': url,
       'headers': headers,
       'startPositionMs': startPosition.inMilliseconds,
+      'container': container,
+      'videoRangeType': videoRangeType,
       'mediaType': mediaType,
       'normalizationGainDb': normalizationGainDb,
     });
@@ -280,7 +284,6 @@ class Media3PlayerBackend implements PlayerBackend {
       supportsHevc: PlatformDetection.supportsHevc,
       supportsHevcMain10: PlatformDetection.supportsHevcMain10,
       hevcMainLevel: PlatformDetection.hevcMainLevel,
-      hevcMain10Level: PlatformDetection.hevcMain10Level,
       supportsHevcDolbyVision: PlatformDetection.supportsHevcDolbyVision,
       supportsHevcDolbyVisionEl: PlatformDetection.supportsHevcDolbyVisionEl,
       supportsHevcHdr10: PlatformDetection.supportsHevcHdr10,
@@ -299,7 +302,6 @@ class Media3PlayerBackend implements PlayerBackend {
       maxResolutionAv1Height: PlatformDetection.maxResolutionAv1Height,
       maxResolutionVc1Width: PlatformDetection.maxResolutionVc1Width,
       maxResolutionVc1Height: PlatformDetection.maxResolutionVc1Height,
-      supportsHdr10PlusDisplay: PlatformDetection.supportsHdr10PlusDisplay,
       supportsDvProfile5: PlatformDetection.supportsDoViProfile5,
       supportsDvProfile7: PlatformDetection.supportsDoViProfile7,
       supportsDvProfile8: PlatformDetection.supportsDoViProfile8,

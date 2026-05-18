@@ -50,15 +50,6 @@ bool _hasUnsupportedDolbyVisionProfile(StreamResolutionResult resolution) {
   return false;
 }
 
-bool _hasHdr10PlusWithoutDisplaySupport(StreamResolutionResult resolution) {
-  for (final stream in resolution.mediaStreams) {
-    if (HdrStreamCapability.streamNeedsHdr10PlusDisplayTranscode(stream)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void registerPlaybackModule() {
   final pipService = PipService();
   _getIt.registerSingleton<PipService>(pipService);
@@ -104,10 +95,6 @@ void registerPlaybackModule() {
     }
 
     if (_hasUnsupportedDolbyVisionProfile(resolution)) {
-      return true;
-    }
-
-    if (_hasHdr10PlusWithoutDisplaySupport(resolution)) {
       return true;
     }
 

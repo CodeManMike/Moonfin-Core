@@ -52,6 +52,25 @@ class DeviceProfileBuilder {
     'truehd',
   ];
 
+  static const List<String> _audioDirectPlayContainers = <String>[
+    'aac',
+    'ac3',
+    'alac',
+    'ape',
+    'dts',
+    'eac3',
+    'flac',
+    'm4a',
+    'm4b',
+    'mka',
+    'mp3',
+    'oga',
+    'ogg',
+    'opus',
+    'wav',
+    'wma',
+  ];
+
   static Map<String, dynamic> build({
     int? maxBitrateMbps,
     bool ac3Enabled = true,
@@ -68,7 +87,6 @@ class DeviceProfileBuilder {
     bool supportsHevc = false,
     bool supportsHevcMain10 = false,
     int hevcMainLevel = 0,
-    int hevcMain10Level = 0,
     bool supportsHevcDolbyVision = false,
     bool supportsHevcDolbyVisionEl = false,
     bool supportsHevcHdr10 = false,
@@ -87,7 +105,6 @@ class DeviceProfileBuilder {
     int maxResolutionAv1Height = 0,
     int maxResolutionVc1Width = 0,
     int maxResolutionVc1Height = 0,
-    bool supportsHdr10PlusDisplay = false,
     bool supportsDvProfile5 = false,
     bool supportsDvProfile7 = false,
     bool supportsDvProfile8 = false,
@@ -129,7 +146,6 @@ class DeviceProfileBuilder {
       supportsHevc: supportsHevc,
       supportsHevcMain10: supportsHevcMain10,
       hevcMainLevel: hevcMainLevel,
-      hevcMain10Level: hevcMain10Level,
       supportsHevcDolbyVision: supportsHevcDolbyVision,
       supportsHevcDolbyVisionEl: supportsHevcDolbyVisionEl,
       supportsHevcHdr10: supportsHevcHdr10,
@@ -148,7 +164,6 @@ class DeviceProfileBuilder {
       maxResolutionAv1Height: maxResolutionAv1Height,
       maxResolutionVc1Width: maxResolutionVc1Width,
       maxResolutionVc1Height: maxResolutionVc1Height,
-      supportsHdr10PlusDisplay: supportsHdr10PlusDisplay,
       supportsDvProfile5: supportsDvProfile5,
       supportsDvProfile7: supportsDvProfile7,
       supportsDvProfile8: supportsDvProfile8,
@@ -166,12 +181,13 @@ class DeviceProfileBuilder {
         <String, dynamic>{
           'Type': 'Video',
           'Container':
-              'asf,hls,m4v,mkv,mov,mp4,ogm,ogv,ts,vob,webm,wmv,xvid',
+              'asf,dash,hls,m4v,mkv,mov,mp4,ogm,ogv,ts,vob,webm,wmv,xvid',
           'VideoCodec': 'av1,h264,hevc,mpeg,mpeg2video,vc1,vp8,vp9',
           'AudioCodec': allowedAudioCodecs.join(','),
         },
         <String, dynamic>{
           'Type': 'Audio',
+          'Container': _audioDirectPlayContainers.join(','),
           'AudioCodec': allowedAudioCodecs.join(','),
         },
       ],
@@ -236,7 +252,6 @@ class DeviceProfileBuilder {
     required bool supportsHevc,
     required bool supportsHevcMain10,
     required int hevcMainLevel,
-    required int hevcMain10Level,
     required bool supportsHevcDolbyVision,
     required bool supportsHevcDolbyVisionEl,
     required bool supportsHevcHdr10,
@@ -255,7 +270,6 @@ class DeviceProfileBuilder {
     required int maxResolutionAv1Height,
     required int maxResolutionVc1Width,
     required int maxResolutionVc1Height,
-    required bool supportsHdr10PlusDisplay,
     required bool supportsDvProfile5,
     required bool supportsDvProfile7,
     required bool supportsDvProfile8,
@@ -442,29 +456,6 @@ class DeviceProfileBuilder {
       );
     }
 
-    if (supportsHevcMain10 && hevcMain10Level > 0) {
-      profiles.add(
-        _codecProfile(
-          type: 'Video',
-          codec: 'hevc',
-          conditions: <Map<String, dynamic>>[
-            _condition(
-              condition: 'LessThanEqual',
-              property: 'VideoLevel',
-              value: '$hevcMain10Level',
-            ),
-          ],
-          applyConditions: <Map<String, dynamic>>[
-            _condition(
-              condition: 'Equals',
-              property: 'VideoProfile',
-              value: 'main 10',
-            ),
-          ],
-        ),
-      );
-    }
-
     profiles.add(
       _codecProfile(
         type: 'Video',
@@ -547,10 +538,10 @@ class DeviceProfileBuilder {
         unsupportedRangeTypesAv1.add('DOVI_WITH_HDR10_PLUS');
       }
     }
-    if (!supportsAv1Hdr10Plus) {
-      unsupportedRangeTypesAv1.add('HDR10_PLUS');
-      if (!supportsAv1Hdr10) {
-        unsupportedRangeTypesAv1.add('HDR10');
+    if (!supportsAv1Hdr10) {
+      unsupportedRangeTypesAv1.add('HDR10');
+      if (!supportsAv1Hdr10Plus) {
+        unsupportedRangeTypesAv1.add('HDR10_PLUS');
       }
     }
 
@@ -576,21 +567,14 @@ class DeviceProfileBuilder {
       }
     }
 
-    if (!supportsHevcHdr10Plus) {
-      unsupportedRangeTypesHevc.add('HDR10_PLUS');
-      if (!supportsHevcHdr10) {
-        unsupportedRangeTypesHevc.add('HDR10');
+    if (!supportsHevcHdr10) {
+      unsupportedRangeTypesHevc.add('HDR10');
+      if (!supportsHevcHdr10Plus) {
+        unsupportedRangeTypesHevc.add('HDR10_PLUS');
       }
     }
 
     if (knownHevcDoviHdr10PlusBug) {
-      unsupportedRangeTypesHevc.add('DOVI_WITH_HDR10_PLUS');
-      unsupportedRangeTypesHevc.add('DOVI_WITH_ELHDR10_PLUS');
-    }
-
-    if (!supportsHdr10PlusDisplay) {
-      unsupportedRangeTypesAv1.add('HDR10_PLUS');
-      unsupportedRangeTypesHevc.add('HDR10_PLUS');
       unsupportedRangeTypesHevc.add('DOVI_WITH_HDR10_PLUS');
       unsupportedRangeTypesHevc.add('DOVI_WITH_ELHDR10_PLUS');
     }

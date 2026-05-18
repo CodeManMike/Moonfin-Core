@@ -113,13 +113,6 @@ class HdrStreamCapability {
     }
   }
 
-  static bool streamNeedsHdr10PlusDisplayTranscode(Map<String, dynamic> stream) {
-    if (!isHdr10PlusVideoStream(stream)) {
-      return false;
-    }
-    return !PlatformDetection.supportsHdr10PlusDisplay;
-  }
-
   static String _videoRangeTypeToken(Map<String, dynamic> stream) {
     final value = stream['VideoRangeType']?.toString() ??
         stream['VideoRange']?.toString() ??

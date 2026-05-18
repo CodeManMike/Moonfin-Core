@@ -35,7 +35,6 @@ class _MediaKitDeviceProfileCapabilities {
     required this.supportsHevc,
     required this.supportsHevcMain10,
     required this.hevcMainLevel,
-    required this.hevcMain10Level,
     required this.supportsHevcDolbyVision,
     required this.supportsHevcDolbyVisionEl,
     required this.supportsHevcHdr10,
@@ -54,7 +53,6 @@ class _MediaKitDeviceProfileCapabilities {
     required this.maxResolutionAv1Height,
     required this.maxResolutionVc1Width,
     required this.maxResolutionVc1Height,
-    required this.supportsHdr10PlusDisplay,
     required this.supportsDvProfile5,
     required this.supportsDvProfile7,
     required this.supportsDvProfile8,
@@ -68,7 +66,6 @@ class _MediaKitDeviceProfileCapabilities {
   final bool supportsHevc;
   final bool supportsHevcMain10;
   final int hevcMainLevel;
-  final int hevcMain10Level;
   final bool supportsHevcDolbyVision;
   final bool supportsHevcDolbyVisionEl;
   final bool supportsHevcHdr10;
@@ -87,7 +84,6 @@ class _MediaKitDeviceProfileCapabilities {
   final int maxResolutionAv1Height;
   final int maxResolutionVc1Width;
   final int maxResolutionVc1Height;
-  final bool supportsHdr10PlusDisplay;
   final bool supportsDvProfile5;
   final bool supportsDvProfile7;
   final bool supportsDvProfile8;
@@ -107,7 +103,6 @@ class _MediaKitDeviceProfileCapabilities {
       supportsHevc: PlatformDetection.supportsHevc,
       supportsHevcMain10: PlatformDetection.supportsHevcMain10,
       hevcMainLevel: PlatformDetection.hevcMainLevel,
-      hevcMain10Level: PlatformDetection.hevcMain10Level,
       supportsHevcDolbyVision: PlatformDetection.supportsHevcDolbyVision,
       supportsHevcDolbyVisionEl: PlatformDetection.supportsHevcDolbyVisionEl,
       supportsHevcHdr10: PlatformDetection.supportsHevcHdr10,
@@ -126,7 +121,6 @@ class _MediaKitDeviceProfileCapabilities {
       maxResolutionAv1Height: PlatformDetection.maxResolutionAv1Height,
       maxResolutionVc1Width: PlatformDetection.maxResolutionVc1Width,
       maxResolutionVc1Height: PlatformDetection.maxResolutionVc1Height,
-      supportsHdr10PlusDisplay: PlatformDetection.supportsHdr10PlusDisplay,
       supportsDvProfile5: PlatformDetection.supportsDoViProfile5,
       supportsDvProfile7: PlatformDetection.supportsDoViProfile7,
       supportsDvProfile8: PlatformDetection.supportsDoViProfile8,
@@ -145,7 +139,6 @@ class _MediaKitDeviceProfileCapabilities {
       supportsHevc: true,
       supportsHevcMain10: true,
       hevcMainLevel: _hevcLevel62,
-      hevcMain10Level: _hevcLevel62,
       supportsHevcDolbyVision: true,
       supportsHevcDolbyVisionEl: allowDolbyVisionProfile7DirectPlay,
       supportsHevcHdr10: true,
@@ -164,7 +157,6 @@ class _MediaKitDeviceProfileCapabilities {
       maxResolutionAv1Height: _k8kHeight,
       maxResolutionVc1Width: _k8kWidth,
       maxResolutionVc1Height: _k8kHeight,
-      supportsHdr10PlusDisplay: false,
       supportsDvProfile5: true,
       supportsDvProfile7: allowDolbyVisionProfile7DirectPlay,
       supportsDvProfile8: true,
@@ -419,7 +411,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
       supportsHevc: capabilities.supportsHevc,
       supportsHevcMain10: capabilities.supportsHevcMain10,
       hevcMainLevel: capabilities.hevcMainLevel,
-      hevcMain10Level: capabilities.hevcMain10Level,
       supportsHevcDolbyVision: capabilities.supportsHevcDolbyVision,
       supportsHevcDolbyVisionEl: capabilities.supportsHevcDolbyVisionEl,
       supportsHevcHdr10: capabilities.supportsHevcHdr10,
@@ -438,7 +429,6 @@ class MediaKitPlayerBackend implements PlayerBackend {
       maxResolutionAv1Height: capabilities.maxResolutionAv1Height,
       maxResolutionVc1Width: capabilities.maxResolutionVc1Width,
       maxResolutionVc1Height: capabilities.maxResolutionVc1Height,
-      supportsHdr10PlusDisplay: capabilities.supportsHdr10PlusDisplay,
       supportsDvProfile5: capabilities.supportsDvProfile5,
       supportsDvProfile7: capabilities.supportsDvProfile7,
       supportsDvProfile8: capabilities.supportsDvProfile8,

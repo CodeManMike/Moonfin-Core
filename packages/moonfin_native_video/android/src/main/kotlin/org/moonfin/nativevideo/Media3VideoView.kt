@@ -12,11 +12,13 @@ import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
 import android.widget.FrameLayout
+import androidx.annotation.OptIn
 import androidx.core.content.getSystemService
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
@@ -25,13 +27,18 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.VideoSize
 import androidx.media3.common.text.Cue
 import androidx.media3.common.text.CueGroup
+import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.video.MediaCodecVideoRenderer
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.TsExtractor
 import androidx.media3.ui.CaptionStyleCompat
@@ -45,6 +52,42 @@ import io.github.peerless2012.ass.media.kt.withAssSupport
 import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
 import io.github.peerless2012.ass.media.type.AssRenderType
 import kotlin.math.roundToInt
+
+@OptIn(ExperimentalApi::class)
+private class MoonfinRenderersFactory(
+    context: Context,
+) : DefaultRenderersFactory(context) {
+    override fun buildVideoRenderers(
+        context: Context,
+        extensionRendererMode: Int,
+        mediaCodecSelector: MediaCodecSelector,
+        enableDecoderFallback: Boolean,
+        eventHandler: Handler,
+        eventListener: VideoRendererEventListener,
+        allowedVideoJoiningTimeMs: Long,
+        out: ArrayList<Renderer>,
+    ) {
+        var videoRendererBuilder =
+            MediaCodecVideoRenderer
+                .Builder(context)
+                .setCodecAdapterFactory(codecAdapterFactory)
+                .setMediaCodecSelector(mediaCodecSelector)
+                .setAllowedJoiningTimeMs(allowedVideoJoiningTimeMs)
+                .setEnableDecoderFallback(enableDecoderFallback)
+                .setEventHandler(eventHandler)
+                .setEventListener(eventListener)
+                .setMaxDroppedFramesToNotify(MAX_DROPPED_VIDEO_FRAME_COUNT_TO_NOTIFY)
+
+        if (Build.VERSION.SDK_INT >= 34) {
+            videoRendererBuilder =
+                videoRendererBuilder.experimentalSetEnableMediaCodecBufferDecodeOnlyFlag(
+                    false,
+                )
+        }
+
+        out.add(videoRendererBuilder.build())
+    }
+}
 
 @UnstableApi
 class Media3VideoView(
@@ -137,6 +180,8 @@ class Media3VideoView(
     private var videoHeightPx = 0
     private var videoPixelRatio = 1f
     private var currentNormalizationGainDb: Float? = null
+    private var currentContainer: String? = null
+    private var currentVideoRangeType: String? = null
     private var currentMediaType: String = "video"
     private var isDisposed = false
     private var firstFrameRendered = false
@@ -181,7 +226,8 @@ class Media3VideoView(
             emitState()
         }
 
-        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+        override fun onPlayerError(error: PlaybackException) {
+            emitRecoverablePlayerError(error)
             Media3Bridge.emitEvent(
                 mapOf(
                     "event" to "error",
@@ -225,22 +271,11 @@ class Media3VideoView(
     }
 
     init {
-        trackSelector.setParameters(
-            trackSelector.buildUponParameters()
-                .setAudioOffloadPreferences(
-                    TrackSelectionParameters.AudioOffloadPreferences.DEFAULT
-                        .buildUpon()
-                        .setAudioOffloadMode(
-                            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED,
-                        )
-                        .build(),
-                )
-                .setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true),
-        )
+        applyTrackSelectorForCurrentSource()
 
-        val renderersFactory = DefaultRenderersFactory(context).apply {
+        val renderersFactory = MoonfinRenderersFactory(context).apply {
             setEnableDecoderFallback(true)
-            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
         }
 
         val isLowRamDevice = context.getSystemService<ActivityManager>()?.isLowRamDevice == true
@@ -392,6 +427,7 @@ class Media3VideoView(
                         selectedSubtitleIsBitmap = isBitmap
                         selectedExternalSubtitleUrl = externalUrl?.takeIf { it.isNotBlank() }
                         subtitleTrackEnabled = true
+                        applyTrackSelectorForCurrentSource()
                         refreshSubtitleRendererMode()
                     }
                     result.success(null)
@@ -408,6 +444,7 @@ class Media3VideoView(
                     selectedSubtitleIsBitmap = false
                     selectedExternalSubtitleUrl = null
                     subtitleTrackEnabled = false
+                    applyTrackSelectorForCurrentSource()
                     clearAssSubtitleScript()
                     refreshSubtitleRendererMode()
                     emitTracksChanged()
@@ -515,6 +552,7 @@ class Media3VideoView(
                         selectedSubtitleIsBitmap = isBitmap
                         selectedExternalSubtitleUrl = externalUrl?.takeIf { it.isNotBlank() }
                         subtitleTrackEnabled = true
+                        applyTrackSelectorForCurrentSource()
                         refreshSubtitleRendererMode()
                     }
                 }
@@ -530,6 +568,7 @@ class Media3VideoView(
                     selectedSubtitleIsBitmap = false
                     selectedExternalSubtitleUrl = null
                     subtitleTrackEnabled = false
+                    applyTrackSelectorForCurrentSource()
                     clearAssSubtitleScript()
                     refreshSubtitleRendererMode()
                     emitTracksChanged()
@@ -555,6 +594,16 @@ class Media3VideoView(
         val args = arguments as? Map<*, *> ?: return
         val url = args["url"]?.toString() ?: return
         val startPositionMs = (args["startPositionMs"] as? Number)?.toLong() ?: 0L
+        currentContainer = args["container"]
+            ?.toString()
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.isNotEmpty() }
+        currentVideoRangeType = args["videoRangeType"]
+            ?.toString()
+            ?.trim()
+            ?.uppercase()
+            ?.takeIf { it.isNotEmpty() }
         currentMediaType = args["mediaType"]?.toString()?.lowercase() ?: "video"
         currentNormalizationGainDb = (args["normalizationGainDb"] as? Number)?.toFloat()
 
@@ -580,6 +629,7 @@ class Media3VideoView(
         firstFrameRendered = false
         firstFrameCover.visibility = View.VISIBLE
         clearAssSubtitleScript()
+        applyTrackSelectorForCurrentSource()
         refreshSubtitleRendererMode()
         applyAudioAttributesForCurrentMediaType()
         audioPipeline.normalizationGainDb = currentNormalizationGainDb
@@ -618,6 +668,33 @@ class Media3VideoView(
             onChange = { audioAttributes ->
                 player.setAudioAttributes(audioAttributes, true)
             },
+        )
+    }
+
+    private fun applyTrackSelectorForCurrentSource() {
+        val isAudioContent = currentMediaType == "audio"
+        val hasExternalSubtitle = selectedSubtitleIsExternal ||
+            !selectedExternalSubtitleUrl.isNullOrBlank() ||
+            externalSubtitleConfigurations.isNotEmpty()
+        val shouldEnableTunneling =
+            !isAudioContent && !hasExternalSubtitle && isHdrLikeRangeType(currentVideoRangeType)
+
+        val offloadMode = if (isAudioContent) {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+        } else {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+        }
+
+        trackSelector.setParameters(
+            trackSelector.buildUponParameters()
+                .setAudioOffloadPreferences(
+                    TrackSelectionParameters.AudioOffloadPreferences.DEFAULT
+                        .buildUpon()
+                        .setAudioOffloadMode(offloadMode)
+                        .build(),
+                )
+                .setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true)
+                .setTunnelingEnabled(shouldEnableTunneling),
         )
     }
 
@@ -824,6 +901,7 @@ class Media3VideoView(
         }
 
         externalSubtitleConfigurations.add(subtitleBuilder.build())
+        applyTrackSelectorForCurrentSource()
 
         val playWhenReady = player.playWhenReady
         val currentPosition = player.currentPosition
@@ -868,14 +946,70 @@ class Media3VideoView(
         val url = currentUrl ?: return
 
         val subtitleConfigurations = externalSubtitleConfigurations.toList()
-        val mediaItem = MediaItem.Builder()
+        val mediaItemBuilder = MediaItem.Builder()
             .setUri(url)
             .setSubtitleConfigurations(subtitleConfigurations)
-            .build()
+        inferStreamMimeType(url, currentContainer)?.let { mimeType ->
+            mediaItemBuilder.setMimeType(mimeType)
+        }
+        val mediaItem = mediaItemBuilder.build()
         player.setMediaItem(mediaItem, startPositionMs)
         player.prepare()
         player.playWhenReady = playWhenReady
         emitState()
+    }
+
+    private fun inferStreamMimeType(url: String, container: String?): String? {
+        val normalizedContainer = container?.lowercase()
+        if (normalizedContainer == "hls" || normalizedContainer == "m3u8") {
+            return MimeTypes.APPLICATION_M3U8
+        }
+        if (normalizedContainer == "dash" || normalizedContainer == "mpd") {
+            return MimeTypes.APPLICATION_MPD
+        }
+
+        val normalizedUrl = url.lowercase()
+        if (normalizedUrl.contains(".m3u8")) {
+            return MimeTypes.APPLICATION_M3U8
+        }
+        if (normalizedUrl.contains(".mpd")) {
+            return MimeTypes.APPLICATION_MPD
+        }
+
+        return null
+    }
+
+    private fun isHdrLikeRangeType(videoRangeType: String?): Boolean {
+        if (videoRangeType.isNullOrBlank()) {
+            return false
+        }
+        return videoRangeType.contains("HDR") || videoRangeType.contains("DOVI")
+    }
+
+    private fun emitRecoverablePlayerError(error: PlaybackException) {
+        val recoverableKind = when (error.errorCode) {
+            PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED,
+            PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+            -> "unsupported_audio"
+
+            else -> null
+        }
+
+        if (recoverableKind == null) {
+            return
+        }
+
+        Media3Bridge.emitEvent(
+            mapOf(
+                "event" to "playerError",
+                "recoverable" to true,
+                "kind" to recoverableKind,
+                "code" to error.errorCode,
+                "message" to (error.localizedMessage ?: ""),
+            ),
+        )
     }
 
     private fun selectTrack(trackType: Int, oneBasedIndex: Int): Boolean {

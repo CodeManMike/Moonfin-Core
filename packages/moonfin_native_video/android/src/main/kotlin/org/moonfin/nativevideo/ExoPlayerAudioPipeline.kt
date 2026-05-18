@@ -27,7 +27,12 @@ class ExoPlayerAudioPipeline {
     private fun applyGain() {
         val enhancer = loudnessEnhancer ?: return
         val targetGain = normalizationGainDb?.times(100f)?.toInt()
-        enhancer.setEnabled(targetGain != null)
-        enhancer.setTargetGain(targetGain ?: 0)
+        runCatching {
+            enhancer.setEnabled(targetGain != null)
+            enhancer.setTargetGain(targetGain ?: 0)
+        }.onFailure {
+            loudnessEnhancer?.release()
+            loudnessEnhancer = null
+        }
     }
 }

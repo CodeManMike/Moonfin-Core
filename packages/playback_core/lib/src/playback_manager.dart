@@ -98,12 +98,17 @@ class PlaybackManager {
   Map<String, dynamic> _buildBackendMediaPayload({
     required String url,
     List<Map<String, dynamic>> mediaStreams = const [],
+    String? container,
+    String? videoRangeType,
     String? mediaType,
     double? normalizationGainDb,
   }) {
     final resolvedMediaType = mediaType?.trim().toLowerCase();
     return <String, dynamic>{
       'url': url,
+      if (container != null && container.isNotEmpty) 'container': container,
+      if (videoRangeType != null && videoRangeType.isNotEmpty)
+        'videoRangeType': videoRangeType,
       'mediaType':
           (resolvedMediaType == 'audio' || resolvedMediaType == 'video')
           ? resolvedMediaType
@@ -549,6 +554,8 @@ class PlaybackManager {
       final backendMediaPayload = _buildBackendMediaPayload(
         url: resolution.streamUrl,
         mediaStreams: resolution.mediaStreams,
+        container: resolution.container,
+        videoRangeType: resolution.videoRangeType,
         mediaType: resolution.mediaType,
         normalizationGainDb: resolution.normalizationGainDb,
       );

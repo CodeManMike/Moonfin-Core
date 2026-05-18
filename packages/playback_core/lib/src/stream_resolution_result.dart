@@ -26,6 +26,8 @@ class StreamResolutionResult {
   final String? liveStreamId;
   final String? playSessionId;
   final StreamPlayMethod playMethod;
+  final String? container;
+  final String? videoRangeType;
   final String mediaType;
   final double? normalizationGainDb;
   final List<ExternalSubtitle> externalSubtitles;
@@ -38,6 +40,8 @@ class StreamResolutionResult {
     this.liveStreamId,
     this.playSessionId,
     required this.playMethod,
+    this.container,
+    this.videoRangeType,
     this.mediaType = 'video',
     this.normalizationGainDb,
     this.externalSubtitles = const [],

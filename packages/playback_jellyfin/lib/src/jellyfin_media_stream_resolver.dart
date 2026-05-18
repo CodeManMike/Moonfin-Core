@@ -82,6 +82,10 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       source.mediaStreams,
       fallbackUrl: url,
     );
+    final videoRangeType = source.mediaStreams
+        .where((stream) => stream['Type'] == 'Video')
+        .map((stream) => stream['VideoRangeType']?.toString())
+        .firstWhere((value) => value != null && value.isNotEmpty, orElse: () => null);
     final normalizationGainDb =
         MediaStreamResolver.extractNormalizationGainDb(source.mediaStreams);
 
@@ -91,6 +95,8 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       liveStreamId: source.liveStreamId,
       playSessionId: info.playSessionId,
       playMethod: playMethod,
+      container: source.container,
+      videoRangeType: videoRangeType,
       mediaType: mediaType,
       normalizationGainDb: normalizationGainDb,
       externalSubtitles: authedSubs,
