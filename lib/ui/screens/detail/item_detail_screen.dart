@@ -508,6 +508,7 @@ class _DetailContentState extends State<_DetailContent> {
     FocusNode? upTarget,
     FocusNode? downTarget,
     int? itemCount,
+    bool consumeDownWhenNoTarget = false,
   }) {
     final hasBoundaryGuards = itemCount != null && itemCount > 0;
     if (!PlatformDetection.isTV ||
@@ -538,7 +539,13 @@ class _DetailContentState extends State<_DetailContent> {
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
         _resetSectionHorizontalOffset(sourceFocusNode);
-        return _requestSectionFocus(downTarget);
+        final result = _requestSectionFocus(downTarget);
+        if (result == KeyEventResult.ignored &&
+            consumeDownWhenNoTarget &&
+            downTarget == null) {
+          return KeyEventResult.handled;
+        }
+        return result;
       }
       return KeyEventResult.ignored;
     };
@@ -1128,6 +1135,7 @@ class _DetailContentState extends State<_DetailContent> {
               upTarget:
                   collectionFocusNode ?? castFocusNode ?? chapterFeatureLastNode,
               itemCount: viewModel.similar.length,
+              consumeDownWhenNoTarget: true,
             ),
           ),
         ),
@@ -1299,6 +1307,7 @@ class _DetailContentState extends State<_DetailContent> {
                   seriesNextUpFocusNode ??
                   actionButtonsFocusNode,
               itemCount: viewModel.similar.length,
+              consumeDownWhenNoTarget: true,
             ),
           ),
         ),
@@ -1521,6 +1530,7 @@ class _DetailContentState extends State<_DetailContent> {
               upTarget:
                   castFocusNode ?? episodesFocusNode ?? chapterFeatureLastNode,
               itemCount: viewModel.similar.length,
+              consumeDownWhenNoTarget: true,
             ),
           ),
         ),
@@ -1762,6 +1772,7 @@ class _DetailContentState extends State<_DetailContent> {
               sourceFocusNode: similarFocusNode,
               upTarget: albumsFocusNode,
               itemCount: viewModel.similar.length,
+              consumeDownWhenNoTarget: true,
             ),
           ),
         ),
