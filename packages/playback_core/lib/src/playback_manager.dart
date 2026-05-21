@@ -40,6 +40,10 @@ class PlaybackManager {
   int? _audioStreamIndex;
   int? _subtitleStreamIndex;
   String? _mediaSourceId;
+  String? _pendingItemOverrideId;
+  int? _pendingItemAudioStreamIndex;
+  int? _pendingItemSubtitleStreamIndex;
+  String? _pendingItemMediaSourceId;
   Duration _lastKnownPosition = Duration.zero;
   Duration _itemKnownDuration = Duration.zero;
   int? _maxBitrateOverrideMbps;
@@ -110,6 +114,25 @@ class PlaybackManager {
 
   void setOfflineMetadataByUrl(Map<String, Map<String, dynamic>> metadata) {
     _offlineMetadataByUrl = metadata;
+  }
+
+  void setPendingItemOverrides({
+    required String itemId,
+    int? audioStreamIndex,
+    int? subtitleStreamIndex,
+    String? mediaSourceId,
+  }) {
+    final normalizedItemId = itemId.trim();
+    if (normalizedItemId.isEmpty) {
+      _clearPendingItemOverrides();
+      return;
+    }
+
+    _pendingItemOverrideId = normalizedItemId;
+    _pendingItemAudioStreamIndex = audioStreamIndex;
+    _pendingItemSubtitleStreamIndex = subtitleStreamIndex;
+    _pendingItemMediaSourceId =
+      mediaSourceId == null || mediaSourceId.isEmpty ? null : mediaSourceId;
   }
 
   List<Map<String, dynamic>> get _currentMediaStreams {
@@ -414,6 +437,25 @@ class PlaybackManager {
     _autoNext().whenComplete(() => _isAutoNexting = false);
   }
 
+  void _clearPendingItemOverrides() {
+    _pendingItemOverrideId = null;
+    _pendingItemAudioStreamIndex = null;
+    _pendingItemSubtitleStreamIndex = null;
+    _pendingItemMediaSourceId = null;
+  }
+
+  void _applyPendingItemOverridesIfNeeded(String itemId) {
+    final pendingItemId = _pendingItemOverrideId;
+    if (pendingItemId == null || pendingItemId != itemId) {
+      return;
+    }
+
+    _audioStreamIndex = _pendingItemAudioStreamIndex;
+    _subtitleStreamIndex = _pendingItemSubtitleStreamIndex;
+    _mediaSourceId = _pendingItemMediaSourceId;
+    _clearPendingItemOverrides();
+  }
+
   void _onBackendErrorEvent(Map<String, dynamic> event) {
     unawaited(_handleBackendErrorEvent(event));
   }
@@ -526,6 +568,7 @@ class PlaybackManager {
     bool enableDirectPlay = true,
     bool enableDirectStream = true,
   }) async {
+    _clearPendingItemOverrides();
     _isAutoNexting = false;
     _isManualNexting = false;
     suppressAutoNext = false;
@@ -615,6 +658,7 @@ class PlaybackManager {
     _lastKnownPosition = Duration.zero;
     final sessionToken = ++_playbackSessionToken;
     final itemId = _traceItemId(item);
+    _applyPendingItemOverridesIfNeeded(itemId);
     _setBringupState(
       PlaybackBringupState(
         phase: PlaybackBringupPhase.resolving,

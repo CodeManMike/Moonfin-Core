@@ -66,6 +66,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   static const _tvTemporarySpeedHoldDelay = Duration(milliseconds: 420);
   static const _seekPromptSuppressionDuration = Duration(milliseconds: 1200);
   static const _seekDragPromptSuppressionDuration = Duration(seconds: 4);
+  static const _scrubSeekDebounceDuration = Duration(milliseconds: 250);
 
   final _manager = GetIt.instance<PlaybackManager>();
   final _backend = GetIt.instance<MediaKitPlayerBackend>();
@@ -101,6 +102,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   Timer? _hideTimer;
   bool _isSeeking = false;
   double _seekValue = 0;
+  Timer? _scrubSeekDebounceTimer;
+  Duration? _pendingScrubSeekTarget;
   late ZoomMode _zoomMode;
   double _audioDelay = 0.0;
   double _subtitleDelay = 0.0;
@@ -819,6 +822,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
     _cancelTvTemporarySpeedHold();
     _hideTimer?.cancel();
+    _scrubSeekDebounceTimer?.cancel();
+    _scrubSeekDebounceTimer = null;
     _volumeOverlayTimer?.cancel();
     _brightnessOverlayTimer?.cancel();
     _zoomModeToastTimer?.cancel();
@@ -2263,6 +2268,47 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
   }
 
+  void _seekRelativeDebounced(int ms, {bool showControls = true}) {
+    _suppressSeekPrompts();
+    final basePosition = _pendingScrubSeekTarget ?? _state.position;
+    final target = basePosition + Duration(milliseconds: ms);
+    _scheduleDebouncedScrubSeek(target, showControls: showControls);
+  }
+
+  void _scheduleDebouncedScrubSeek(
+    Duration target, {
+    bool showControls = true,
+  }) {
+    final clamped = Duration(
+      milliseconds: target.inMilliseconds.clamp(
+        0,
+        _state.duration.inMilliseconds,
+      ),
+    );
+    setState(() {
+      _pendingScrubSeekTarget = clamped;
+      _isSeeking = true;
+      _seekValue = clamped.inMilliseconds.toDouble();
+    });
+    _scrubSeekDebounceTimer?.cancel();
+    _scrubSeekDebounceTimer = Timer(_scrubSeekDebounceDuration, () {
+      final pendingTarget = _pendingScrubSeekTarget;
+      if (pendingTarget != null) {
+        _pendingScrubSeekTarget = null;
+        _scrubSeekDebounceTimer = null;
+        unawaited(_manager.seekTo(pendingTarget));
+        if (mounted) {
+          setState(() {
+            _isSeeking = false;
+          });
+        }
+      }
+    });
+    if (showControls) {
+      _showControls();
+    }
+  }
+
   Future<void> _resumeWithConfiguredRewind() async {
     final rewindMs = _prefs.get(UserPreferences.unpauseRewindDuration);
     if (rewindMs > 0) {
@@ -3331,6 +3377,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       episodeInfo = null;
     }
 
+    final titleText = [?episodeInfo, title].where((s) => s.isNotEmpty).join(' - ');
+    final logoUrl = _logoUrlForQueueItem(item);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -3345,17 +3394,89 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        Text(
-          [?episodeInfo, title].where((s) => s.isNotEmpty).join(' — '),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: AppTypography.fontSizeLg,
-            fontWeight: FontWeight.w600,
+        if (logoUrl != null)
+          Image.network(
+            logoUrl,
+            height: 34,
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
+            errorBuilder: (_, _, _) => Text(
+              titleText,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: AppTypography.fontSizeLg,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )
+        else
+          Text(
+            titleText,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: AppTypography.fontSizeLg,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
       ],
+    );
+  }
+
+  String _endsAtLabel({
+    required Duration position,
+    required Duration duration,
+  }) {
+    if (duration <= Duration.zero) return '';
+    final remaining = duration - position;
+    if (remaining <= Duration.zero) return '';
+    final end = DateTime.now().add(remaining);
+    final localizations = MaterialLocalizations.of(context);
+    final use24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+    final time = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(end),
+      alwaysUse24HourFormat: use24Hour,
+    );
+    return AppLocalizations.of(context).endsAt(time);
+  }
+
+  String? _logoUrlForQueueItem(dynamic item) {
+    final raw = _rawDataForQueueItem(item);
+    if (raw == null) return null;
+
+    String? logoItemId;
+    String? logoTag;
+    final type = (raw['Type'] as String?)?.trim();
+
+    if (type == 'Episode') {
+      logoItemId = (raw['ParentLogoItemId'] as String?) ??
+          (raw['SeriesId'] as String?);
+      logoTag = raw['ParentLogoImageTag'] as String?;
+    } else {
+      final imageTags = raw['ImageTags'];
+      if (imageTags is Map) {
+        logoTag = imageTags['Logo'] as String?;
+      }
+      logoTag ??= raw['LogoImageTag'] as String?;
+      logoItemId = _itemIdForQueueItem(item) ?? (raw['Id'] as String?);
+    }
+
+    final normalizedItemId = logoItemId?.trim();
+    final normalizedTag = logoTag?.trim();
+    if (normalizedItemId == null ||
+        normalizedItemId.isEmpty ||
+        normalizedTag == null ||
+        normalizedTag.isEmpty) {
+      return null;
+    }
+
+    return _clientForQueueItem(item).imageApi.getLogoImageUrl(
+      normalizedItemId,
+      maxWidth: 420,
+      tag: normalizedTag,
     );
   }
 
@@ -3521,6 +3642,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                     .clamp(0, duration.inMilliseconds)
                     .toDouble();
                 final seekPosition = Duration(milliseconds: positionMs.round());
+                final livePosition = _isSeeking ? seekPosition : position;
+                final endsAt = _endsAtLabel(
+                  position: livePosition,
+                  duration: duration,
+                );
                 final trickplayTile = _isSeeking
                     ? _getTrickplayTile(seekPosition)
                     : null;
@@ -3544,6 +3670,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           tileHeight: trickplayTile.tileHeight,
                         ),
                       ),
+                    if (endsAt.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            right: AppSpacing.spaceLg,
+                            bottom: AppSpacing.spaceXs,
+                          ),
+                          child: Text(
+                            endsAt,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: AppTypography.fontSizeXs,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                     Focus(
                       focusNode: _tvSeekbarFocus,
                       onKeyEvent: (node, event) {
@@ -3554,12 +3698,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         }
                         switch (event.logicalKey) {
                           case LogicalKeyboardKey.arrowLeft:
-                            _seekRelative(
+                            _seekRelativeDebounced(
                               -_prefs.get(UserPreferences.skipBackLength),
                             );
                             return KeyEventResult.handled;
                           case LogicalKeyboardKey.arrowRight:
-                            _seekRelative(
+                            _seekRelativeDebounced(
                               _prefs.get(UserPreferences.skipForwardLength),
                             );
                             return KeyEventResult.handled;
@@ -3613,6 +3757,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                               _suppressSeekPrompts(
                                 duration: _seekDragPromptSuppressionDuration,
                               );
+                              _scrubSeekDebounceTimer?.cancel();
+                              _scrubSeekDebounceTimer = null;
+                              _pendingScrubSeekTarget = null;
                               setState(() {
                                 _isSeeking = true;
                                 _seekValue = v;
@@ -3628,9 +3775,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             },
                             onChangeEnd: (v) {
                               _suppressSeekPrompts();
-                              _isSeeking = false;
-                              _manager.seekTo(
+                              _scheduleDebouncedScrubSeek(
                                 Duration(milliseconds: v.round()),
+                                showControls: false,
                               );
                               _scheduleHide();
                             },
@@ -4935,6 +5082,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       if (!audio) TrackOption(label: l10n.off),
       ...streams.asMap().entries.map((entry) {
         final index = entry.key;
+        final trackNumber = index + 1;
         final s = entry.value;
         final displayTitle = s['DisplayTitle'] as String?;
         final title = s['Title'] as String?;
@@ -4945,14 +5093,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             title ??
             language ??
             l10n.streamTypeFallback(streamType, index + 1);
-        final subtitle = [
-          if (language != null && displayTitle != null) language,
-          if (codec != null) codec.toUpperCase(),
-          if (s['Channels'] != null) '${s['Channels']}ch',
-        ].join(' · ');
+        final subtitle = audio
+            ? [
+                if (language != null && displayTitle != null) language,
+                if (codec != null) codec.toUpperCase(),
+                if (s['Channels'] != null) '${s['Channels']}ch',
+              ].join(' · ')
+            : (() {
+                final subtitleType =
+                    ((codec == null || codec.isEmpty) ? 'Unknown' : codec)
+                        .toUpperCase();
+                final deliveryMethod =
+                    (s['DeliveryMethod'] as String?)?.trim().toLowerCase();
+                final location = s['IsExternal'] == true
+                    ? 'External'
+                    : (deliveryMethod == 'embed' ? 'Embedded' : 'Internal');
+                return '$subtitleType · $location';
+              })();
         return TrackOption(
-          label: label,
+          label: '$trackNumber - $label',
           subtitle: subtitle.isNotEmpty ? subtitle : null,
+          scrollLabel: true,
+          scrollSubtitle: true,
         );
       }),
       if (canDownloadRemote)
