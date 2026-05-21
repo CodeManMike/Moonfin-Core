@@ -1824,11 +1824,21 @@ class _VideoPlaybackScreen extends StatelessWidget {
               ZoomMode.stretch => l10n.stretch,
             },
           ),
-          if (PlatformDetection.isAndroid && PlatformDetection.isTV)
+          if (PlatformDetection.isAndroid)
             EnumPreferenceTile<PlaybackEnginePreference>(
               preference: UserPreferences.playbackEnginePreference,
-              title: l10n.settingsPlaybackEngineAndroidTv,
-              description: l10n.settingsPlaybackEngineAndroidTvDescription,
+              title: PlatformDetection.isTV
+                  ? l10n.settingsPlaybackEngineAndroidTv
+                  : l10n.settingsPlaybackEngineAndroidTv.replaceAll(
+                    'Android TV',
+                    'Android',
+                  ),
+              description: PlatformDetection.isTV
+                  ? l10n.settingsPlaybackEngineAndroidTvDescription
+                  : l10n.settingsPlaybackEngineAndroidTvDescription.replaceAll(
+                    'Android TV',
+                    'Android',
+                  ),
               icon: Icons.video_settings,
               labelOf: (v) => switch (v) {
                 PlaybackEnginePreference.media3 =>

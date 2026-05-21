@@ -12,6 +12,7 @@ import '../data/repositories/offline_repository.dart';
 import '../data/services/connectivity_service.dart';
 import '../data/services/recent_searches_store.dart';
 import '../data/services/storage_path_service.dart';
+import '../preference/preference_constants.dart';
 import '../preference/user_preferences.dart';
 import '../util/platform_detection.dart';
 import 'modules/app_module.dart';
@@ -130,6 +131,35 @@ Future<String> _resolveAppVersion() async {
   }
 }
 
+({int major, int minor, int patch})? _parseSemverCore(String? rawVersion) {
+  if (rawVersion == null) return null;
+  final normalized = rawVersion.trim();
+  if (normalized.isEmpty) return null;
+
+  final match = RegExp(r'^\D*(\d+)\.(\d+)\.(\d+)').firstMatch(normalized);
+  if (match == null) return null;
+
+  final major = int.tryParse(match.group(1) ?? '');
+  final minor = int.tryParse(match.group(2) ?? '');
+  final patch = int.tryParse(match.group(3) ?? '');
+  if (major == null || minor == null || patch == null) {
+    return null;
+  }
+
+  return (major: major, minor: minor, patch: patch);
+}
+
+bool _isAtMostVersion1_4X(String? rawVersion) {
+  final parsed = _parseSemverCore(rawVersion);
+  if (parsed == null) return false;
+
+  if (parsed.major != 1) {
+    return parsed.major < 1;
+  }
+
+  return parsed.minor <= 4;
+}
+
 Future<void> _migrateLegacyBitrateCap(PreferenceStore store) async {
   const migrationKey = 'pref_max_bitrate_migrated_v3';
   if (store.getBool(migrationKey) == true) {
@@ -178,11 +208,57 @@ Future<void> _migrateLegacyMediaBarMode(PreferenceStore store) async {
   await store.setBool(migrationKey, true);
 }
 
+Future<void> _migrateAndroidMobilePlaybackEngine(
+  PreferenceStore store, {
+  required String currentAppVersion,
+}) async {
+  const migrationKey = 'pref_playback_engine_migrated_android_mobile_v1';
+  const lastSeenVersionKey = 'pref_last_seen_app_version';
+  final previousAppVersion = store.getString(lastSeenVersionKey);
+
+  try {
+    if (!PlatformDetection.isAndroid || PlatformDetection.isTV) {
+      return;
+    }
+
+    if (store.getBool(migrationKey) == true) {
+      return;
+    }
+
+    final hasStoredEnginePreference = store.containsKey(
+      UserPreferences.playbackEnginePreference.key,
+    );
+    final shouldMigrate =
+        _isAtMostVersion1_4X(previousAppVersion) ||
+        (previousAppVersion == null && hasStoredEnginePreference);
+
+    if (shouldMigrate) {
+      await store.setString(
+        UserPreferences.playbackEnginePreference.key,
+        PlaybackEnginePreference.media3.name,
+      );
+    }
+
+    await store.setBool(migrationKey, true);
+  } finally {
+    if (PlatformDetection.isAndroid &&
+        !PlatformDetection.isTV &&
+        previousAppVersion != currentAppVersion) {
+      await store.setString(lastSeenVersionKey, currentAppVersion);
+    }
+  }
+}
+
 Future<void> configureDependencies() async {
   final preferenceStore = PreferenceStore();
   await preferenceStore.init();
+  final appVersion = await _resolveAppVersion();
   await _migrateLegacyBitrateCap(preferenceStore);
   await _migrateLegacyMediaBarMode(preferenceStore);
+  await _migrateAndroidMobilePlaybackEngine(
+    preferenceStore,
+    currentAppVersion: appVersion,
+  );
 
   var deviceId = preferenceStore.getString('device_id');
   if (deviceId == null) {
@@ -192,7 +268,6 @@ Future<void> configureDependencies() async {
 
   final clientName = _clientName();
   final deviceName = await _resolveDeviceName();
-  final appVersion = await _resolveAppVersion();
   getIt.registerSingleton<DeviceInfo>(
     DeviceInfo(
       id: deviceId,

@@ -293,7 +293,6 @@ void registerPlaybackModule() {
   final prefs = _getIt<UserPreferences>();
   final useMedia3ByDefault =
       PlatformDetection.isAndroid &&
-      PlatformDetection.isTV &&
       prefs.get(UserPreferences.playbackEnginePreference) ==
           PlaybackEnginePreference.media3;
   final initialBackend = useMedia3ByDefault ? media3Backend : backend;
@@ -302,7 +301,7 @@ void registerPlaybackModule() {
   final manager = PlaybackManager();
   manager.setBackend(initialBackend);
   manager.setBackendSelector((resolution, currentBackend) {
-    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+    if (PlatformDetection.isAndroid) {
       final preferMedia3 =
           prefs.get(UserPreferences.playbackEnginePreference) ==
           PlaybackEnginePreference.media3;
