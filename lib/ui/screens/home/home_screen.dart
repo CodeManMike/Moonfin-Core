@@ -615,6 +615,7 @@ class _ContentRowsState extends State<_ContentRows>
 
   void _onGlobalFocusChanged() {
     if (!mounted) return;
+    final isMobileUi = PlatformDetection.useMobileUi;
     final primary = FocusManager.instance.primaryFocus;
     final onMediaBar = identical(primary, _mediaBarFocusNode);
     final onSidebar = _isSidebarFocus(primary);
@@ -634,10 +635,11 @@ class _ContentRowsState extends State<_ContentRows>
         SettingsPanel.isOpenNotifier.value ||
         (!desktopUnfocused && !onMediaBar && !hasRowContext);
 
-    final nextMediaBarVisible =
-        onMediaBar ||
-        _holdMediaBarWhileSidebarFocused ||
-        (!onSidebar && _activeFocusedRowIndex == null);
+    final nextMediaBarVisible = isMobileUi
+      ? true
+      : onMediaBar ||
+          _holdMediaBarWhileSidebarFocused ||
+          (!onSidebar && _activeFocusedRowIndex == null);
     final chromeChanged = _chromeFocusActive != chromeFocusActive;
 
     if (_mediaBarVisible != nextMediaBarVisible || chromeChanged) {
@@ -1896,13 +1898,14 @@ class _ContentRowsState extends State<_ContentRows>
 
   void _onRowFocusTracked(int rowIndex, bool focused) {
     if (!mounted) return;
+    final isMobileUi = PlatformDetection.useMobileUi;
     if (focused) {
       _hasEverFocusedHomeContent = true;
       if (_activeFocusedRowIndex != rowIndex && _activePreviewKey != null) {
         _finishSharedPreview();
       }
       _activeFocusedRowIndex = rowIndex;
-      if (_mediaBarVisible) {
+      if (!isMobileUi && _mediaBarVisible) {
         setState(() => _mediaBarVisible = false);
       }
     } else if (_activeFocusedRowIndex == rowIndex) {

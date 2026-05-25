@@ -229,11 +229,26 @@ jobs:
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config \
             libgtk-3-dev libglib2.0-dev \
+            libwebkit2gtk-4.1-dev \
             libmpv-dev libsecret-1-dev libasound2-dev \
             libarchive-dev \
             rpm \
             flatpak flatpak-builder \
             libfuse2
+
+      - name: Verify webkit2gtk availability
+        run: |
+          set -euo pipefail
+          if pkg-config --exists webkit2gtk-4.1; then
+            echo "Found webkit2gtk-4.1: $(pkg-config --modversion webkit2gtk-4.1)"
+          elif pkg-config --exists webkit2gtk-4.2; then
+            echo "Found webkit2gtk-4.2: $(pkg-config --modversion webkit2gtk-4.2)"
+          elif pkg-config --exists webkit2gtk-4.3; then
+            echo "Found webkit2gtk-4.3: $(pkg-config --modversion webkit2gtk-4.3)"
+          else
+            echo "No supported webkit2gtk version found (need 4.1/4.2/4.3)."
+            exit 1
+          fi
 
       - name: Install appimagetool
         run: |

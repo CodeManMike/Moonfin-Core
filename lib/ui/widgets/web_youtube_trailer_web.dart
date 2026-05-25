@@ -3,14 +3,30 @@ import 'dart:ui_web' as ui_web;
 import 'package:flutter/widgets.dart';
 import 'package:web/web.dart' as web;
 
+import '../../data/services/youtube_stream_resolver.dart';
+
 class WebYouTubeTrailer extends StatefulWidget {
   final String videoId;
   final bool muted;
+  final bool showControls;
+  final bool loop;
+  final bool ignorePointer;
+  final VoidCallback? onPlaybackStarted;
+  final VoidCallback? onAutoplayFailed;
+  final VoidCallback? onEmbeddedUnavailable;
+  final Duration autoplayTimeout;
 
   const WebYouTubeTrailer({
     super.key,
     required this.videoId,
     this.muted = true,
+    this.showControls = false,
+    this.loop = true,
+    this.ignorePointer = false,
+    this.onPlaybackStarted,
+    this.onAutoplayFailed,
+    this.onEmbeddedUnavailable,
+    this.autoplayTimeout = const Duration(seconds: 3),
   });
 
   @override
@@ -26,7 +42,7 @@ class _WebYouTubeTrailerState extends State<WebYouTubeTrailer> {
   void initState() {
     super.initState();
     _viewType =
-        'moonfin-yt-trailer-${widget.videoId}-${widget.muted ? 'm' : 'u'}';
+        'moonfin-yt-trailer-${widget.videoId}-${widget.muted ? 'm' : 'u'}-${widget.showControls ? 'c1' : 'c0'}-${widget.loop ? 'l1' : 'l0'}-${widget.ignorePointer ? 'p0' : 'p1'}';
     if (_registeredViewTypes.add(_viewType)) {
       ui_web.platformViewRegistry.registerViewFactory(
         _viewType,
@@ -36,24 +52,12 @@ class _WebYouTubeTrailerState extends State<WebYouTubeTrailer> {
   }
 
   web.HTMLIFrameElement _buildIframe() {
-    final params = <String, String>{
-      'autoplay': '1',
-      'mute': widget.muted ? '1' : '0',
-      'controls': '0',
-      'rel': '0',
-      'modestbranding': '1',
-      'playsinline': '1',
-      'showinfo': '0',
-      'iv_load_policy': '3',
-      'disablekb': '1',
-      'fs': '0',
-      'loop': '1',
-      'playlist': widget.videoId,
-    };
-    final query =
-        params.entries.map((e) => '${e.key}=${e.value}').join('&');
-    final src =
-        'https://www.youtube-nocookie.com/embed/${widget.videoId}?$query';
+    final src = YouTubeStreamResolver.buildEmbedUrl(
+      widget.videoId,
+      muted: widget.muted,
+      showControls: widget.showControls,
+      loop: widget.loop,
+    );
 
     final iframe = web.HTMLIFrameElement()
       ..src = src
@@ -61,7 +65,7 @@ class _WebYouTubeTrailerState extends State<WebYouTubeTrailer> {
       ..style.border = '0'
       ..style.width = '100%'
       ..style.height = '100%'
-      ..style.pointerEvents = 'none';
+      ..style.pointerEvents = widget.ignorePointer ? 'none' : 'auto';
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allowfullscreen', 'true');
     return iframe;

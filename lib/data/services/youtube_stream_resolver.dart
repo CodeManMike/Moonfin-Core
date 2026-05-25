@@ -31,6 +31,53 @@ class YouTubeStreamResolver {
     'Referer': 'https://www.youtube.com/',
   };
 
+  static Uri buildEmbedUri(
+    String videoId, {
+    required bool muted,
+    bool autoplay = true,
+    bool showControls = false,
+    bool loop = true,
+    bool enableJsApi = true,
+  }) {
+    final params = <String, String>{
+      if (autoplay) 'autoplay': '1',
+      'mute': muted ? '1' : '0',
+      'controls': showControls ? '1' : '0',
+      'playsinline': '1',
+      'rel': '0',
+      'iv_load_policy': '3',
+      'fs': '0',
+      'disablekb': '1',
+      if (enableJsApi) 'enablejsapi': '1',
+      if (loop) 'loop': '1',
+      if (loop) 'playlist': videoId,
+    };
+
+    return Uri.https(
+      'www.youtube-nocookie.com',
+      '/embed/$videoId',
+      params,
+    );
+  }
+
+  static String buildEmbedUrl(
+    String videoId, {
+    required bool muted,
+    bool autoplay = true,
+    bool showControls = false,
+    bool loop = true,
+    bool enableJsApi = true,
+  }) {
+    return buildEmbedUri(
+      videoId,
+      muted: muted,
+      autoplay: autoplay,
+      showControls: showControls,
+      loop: loop,
+      enableJsApi: enableJsApi,
+    ).toString();
+  }
+
   /// Extracts a YouTube video ID from common URL formats.
   static String? extractVideoId(String url) {
     final uri = Uri.tryParse(url);
@@ -308,33 +355,65 @@ class YouTubeStreamResolver {
     if (streams.isEmpty) return null;
 
     String? bestUrl;
-    int bestQuality = 0;
-    String? bestUnder720Url;
-    int bestUnder720Quality = 0;
+    int bestScore = -1 << 20;
 
     for (final s in streams) {
       final url = s['url'] as String?;
       if (url == null) continue;
 
-      final qualityStr = (s['quality'] as String? ??
-              s['qualityLabel'] as String? ??
-              '')
-          .split(RegExp(r'[p@]'))
-          .first
-          .trim();
-      final quality = int.tryParse(qualityStr) ?? 0;
-
-      if (quality <= 720 && quality > bestUnder720Quality) {
-        bestUnder720Quality = quality;
-        bestUnder720Url = url;
-      }
-      if (quality > bestQuality) {
-        bestQuality = quality;
+      final score = _streamScore(s);
+      if (score > bestScore) {
+        bestScore = score;
         bestUrl = url;
       }
     }
 
-    return bestUnder720Url ?? bestUrl ?? (streams.first['url'] as String?);
+    return bestUrl ?? (streams.first['url'] as String?);
+  }
+
+  static int _streamScore(Map<String, dynamic> stream) {
+    final mime = (stream['mimeType'] as String? ?? '').toLowerCase();
+    final container = (stream['container'] as String? ?? '').toLowerCase();
+    final quality = _qualityFromStream(stream);
+
+    final hasAudio =
+      ((stream['videoOnly'] as bool?) == false) ||
+        mime.contains('mp4a') ||
+        mime.contains('audio');
+    final isMp4 = mime.contains('video/mp4') || container == 'mp4';
+    final isH264 = mime.contains('avc1') || mime.contains('h264');
+    final isVp9 = mime.contains('vp9') || mime.contains('vp09');
+    final isAv1 = mime.contains('av01') || mime.contains('av1');
+    final isHls = (stream['hls'] as bool? ?? false) ||
+        (stream['isHLS'] as bool? ?? false);
+
+    var score = 0;
+
+    if (hasAudio) score += 5000;
+
+    if (isMp4) score += 2500;
+    if (isH264) score += 2500;
+
+    if (isVp9) score -= 1500;
+    if (isAv1) score -= 2500;
+
+    if (isHls) score += 500;
+
+    final clampedQuality = quality > 0 ? quality.clamp(144, 1080) : 480;
+    final qualityDelta = (clampedQuality - 480).abs().toInt();
+    score += 1000 - qualityDelta;
+
+    return score;
+  }
+
+  static int _qualityFromStream(Map<String, dynamic> stream) {
+    final qualityStr = (stream['quality'] as String? ??
+            stream['qualityLabel'] as String? ??
+            '')
+        .split(RegExp(r'[p@]'))
+        .first
+        .trim();
+    return int.tryParse(qualityStr) ?? 0;
   }
 }
 

@@ -51,6 +51,7 @@ import '../../../util/audio_labels.dart';
 import '../../../util/download_utils.dart';
 import '../../../util/episode_playability.dart';
 import '../../../util/focus/dpad_keys.dart';
+import '../../../util/language_matching.dart';
 import '../../../util/platform_detection.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
@@ -4635,11 +4636,11 @@ class _ActionButtonsState extends State<_ActionButtons> {
       return null;
     }
 
-    final preferredNormalized = _normalizeLanguage(preferred);
-    final preferredIso3 = _toIso3(preferredNormalized);
+    final preferredNormalized = normalizeLanguage(preferred);
+    final preferredIso3 = toIso3Language(preferredNormalized);
 
     for (final stream in audioStreams) {
-      if (_languageMatchesPreferred(
+      if (languageMatchesPreferred(
         (stream['Language'] as String?)?.trim(),
         preferredNormalized,
         preferredIso3,
@@ -4672,8 +4673,8 @@ class _ActionButtonsState extends State<_ActionButtons> {
       return null;
     }
 
-    final preferredNormalized = _normalizeLanguage(preferred);
-    final preferredIso3 = _toIso3(preferredNormalized);
+    final preferredNormalized = normalizeLanguage(preferred);
+    final preferredIso3 = toIso3Language(preferredNormalized);
     final preferSdh = prefs.get(UserPreferences.preferSdhSubtitles);
 
     Map<String, dynamic>? bestStream;
@@ -4681,7 +4682,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
 
     for (var i = 0; i < subtitleStreams.length; i++) {
       final stream = subtitleStreams[i];
-      if (!_languageMatchesPreferred(
+      if (!languageMatchesPreferred(
         (stream['Language'] as String?)?.trim(),
         preferredNormalized,
         preferredIso3,
@@ -5354,62 +5355,6 @@ class _ActionButtonsState extends State<_ActionButtons> {
     return _mediaStreamsForItem(item, selectedSource);
   }
 
-  static const Map<String, String> _lang2To3 = {
-    'en': 'eng',
-    'es': 'spa',
-    'fr': 'fra',
-    'de': 'deu',
-    'it': 'ita',
-    'pt': 'por',
-    'ja': 'jpn',
-    'ko': 'kor',
-    'zh': 'zho',
-    'ru': 'rus',
-    'ar': 'ara',
-    'hi': 'hin',
-    'nl': 'nld',
-    'sv': 'swe',
-    'no': 'nor',
-    'da': 'dan',
-    'fi': 'fin',
-    'pl': 'pol',
-  };
-
-  bool _languageMatchesPreferred(
-    String? streamLanguage,
-    String preferredNormalized,
-    String preferredIso3,
-  ) {
-    final stream = _normalizeLanguage(streamLanguage);
-    if (stream.isEmpty || preferredNormalized.isEmpty) {
-      return false;
-    }
-    if (stream == preferredNormalized) {
-      return true;
-    }
-
-    final stream3 = _toIso3(stream);
-    return stream3.isNotEmpty && stream3 == preferredIso3;
-  }
-
-  String _normalizeLanguage(String? language) {
-    if (language == null) {
-      return '';
-    }
-    final normalized = language.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      return '';
-    }
-    return normalized.split(RegExp(r'[-_]')).first;
-  }
-
-  String _toIso3(String language) {
-    if (language.length == 3) {
-      return language;
-    }
-    return _lang2To3[language] ?? language;
-  }
-
   bool _hasTrailer(AggregatedItem item) {
     if (item.remoteTrailers.isNotEmpty) return true;
     return viewModel.features.any(_isTrailerFeatureItem);
@@ -5424,25 +5369,95 @@ class _ActionButtonsState extends State<_ActionButtons> {
   AggregatedItem? _firstLocalTrailerFromFeatures(
     List<AggregatedItem> features,
   ) {
-    for (final feature in features) {
-      if (_isTrailerFeatureItem(feature) && feature.id.isNotEmpty) {
-        return feature;
+    final candidates = features
+        .where((feature) => _isTrailerFeatureItem(feature) && feature.id.isNotEmpty)
+        .toList(growable: false);
+    return _preferredLocalTrailer(candidates);
+  }
+
+  AggregatedItem? _preferredLocalTrailer(List<AggregatedItem> candidates) {
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    final preferred =
+        GetIt.instance<UserPreferences>().get(UserPreferences.defaultAudioLanguage).trim();
+    if (preferred.isEmpty) {
+      return candidates.first;
+    }
+
+    final preferredNormalized = normalizeLanguage(preferred);
+    if (preferredNormalized.isEmpty) {
+      return candidates.first;
+    }
+    final preferredIso3 = toIso3Language(preferredNormalized);
+
+    for (final candidate in candidates) {
+      if (_trailerHasPreferredAudio(
+        candidate,
+        preferredNormalized,
+        preferredIso3,
+      )) {
+        return candidate;
       }
     }
-    return null;
+
+    return candidates.first;
+  }
+
+  bool _trailerHasPreferredAudio(
+    AggregatedItem trailer,
+    String preferredNormalized,
+    String preferredIso3,
+  ) {
+    final audioStreams = _audioStreamsForTrailer(trailer);
+    return audioStreams.any(
+      (stream) => languageMatchesPreferred(
+        (stream['Language'] as String?)?.trim(),
+        preferredNormalized,
+        preferredIso3,
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _audioStreamsForTrailer(AggregatedItem trailer) {
+    final List<Map<String, dynamic>> audio = <Map<String, dynamic>>[];
+
+    for (final stream in trailer.mediaStreams) {
+      if (stream['Type'] == 'Audio') {
+        audio.add(stream);
+      }
+    }
+
+    for (final source in trailer.mediaSources) {
+      final streams =
+          (source['MediaStreams'] as List?)?.whereType<Map>() ?? const <Map>[];
+      for (final stream in streams) {
+        final casted = stream.cast<String, dynamic>();
+        if (casted['Type'] == 'Audio') {
+          audio.add(casted);
+        }
+      }
+    }
+
+    return audio;
   }
 
   Future<AggregatedItem?> _loadLocalTrailerOnDemand(AggregatedItem item) async {
     final client = GetIt.instance<MediaServerClient>();
     try {
       final trailers = await client.itemsApi.getLocalTrailers(item.id);
+      final candidates = <AggregatedItem>[];
       for (final raw in trailers) {
         final id = raw['Id'] as String?;
         if (id == null || id.isEmpty) {
           continue;
         }
-        return AggregatedItem(id: id, serverId: item.serverId, rawData: raw);
+        candidates.add(
+          AggregatedItem(id: id, serverId: item.serverId, rawData: raw),
+        );
       }
+      return _preferredLocalTrailer(candidates);
     } catch (_) {}
     return null;
   }
