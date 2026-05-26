@@ -22,6 +22,7 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
   late final PinCodeUtil _pinUtil;
   bool _pinEnabled = false;
   DateTime? _suppressEnableUntil;
+  bool _pinActionInProgress = false;
 
   @override
   void initState() {
@@ -40,6 +41,9 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
   }
 
   Future<void> _setPin() async {
+    if (_pinActionInProgress) return;
+    _pinActionInProgress = true;
+    try {
     final result = await PinEntryDialog.show(
       context,
       mode: PinEntryMode.set,
@@ -48,9 +52,15 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
       },
     );
     if (result) _refresh();
+    } finally {
+      _pinActionInProgress = false;
+    }
   }
 
   Future<void> _changePin() async {
+    if (_pinActionInProgress) return;
+    _pinActionInProgress = true;
+    try {
     final verified = await PinEntryDialog.show(
       context,
       mode: PinEntryMode.verify,
@@ -66,9 +76,15 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
       },
     );
     if (changed) _refresh();
+    } finally {
+      _pinActionInProgress = false;
+    }
   }
 
   Future<void> _removePin() async {
+    if (_pinActionInProgress) return;
+    _pinActionInProgress = true;
+    try {
     final verified = await PinEntryDialog.show(
       context,
       mode: PinEntryMode.verify,
@@ -79,16 +95,27 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     await _pinUtil.removePin();
     _suppressEnableUntil = DateTime.now().add(const Duration(milliseconds: 500));
     _refresh();
+    } finally {
+      _pinActionInProgress = false;
+    }
   }
 
   Future<void> _togglePinEnabled(bool enabled) async {
+    if (_pinActionInProgress) return;
     if (enabled && !_pinEnabled) {
       final suppressUntil = _suppressEnableUntil;
       if (suppressUntil != null && DateTime.now().isBefore(suppressUntil)) {
         return;
       }
+      _pinActionInProgress = true;
+      try {
       await _setPin();
+      } finally {
+        _pinActionInProgress = false;
+      }
     } else if (!enabled && _pinEnabled) {
+      _pinActionInProgress = true;
+      try {
       final verified = await PinEntryDialog.show(
         context,
         mode: PinEntryMode.verify,
@@ -102,6 +129,9 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) =>
+      } finally {
+        _pinActionInProgress = false;
+      }
       RequestInitialFocus(child: _buildContent(context));
 
   Widget _buildContent(BuildContext context) {
