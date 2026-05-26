@@ -44,14 +44,14 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     if (_pinActionInProgress) return;
     _pinActionInProgress = true;
     try {
-    final result = await PinEntryDialog.show(
-      context,
-      mode: PinEntryMode.set,
-      onPinSet: (pin) async {
-        await _pinUtil.setPin(pin);
-      },
-    );
-    if (result) _refresh();
+      final result = await PinEntryDialog.show(
+        context,
+        mode: PinEntryMode.set,
+        onPinSet: (pin) async {
+          await _pinUtil.setPin(pin);
+        },
+      );
+      if (result) _refresh();
     } finally {
       _pinActionInProgress = false;
     }
@@ -61,21 +61,21 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     if (_pinActionInProgress) return;
     _pinActionInProgress = true;
     try {
-    final verified = await PinEntryDialog.show(
-      context,
-      mode: PinEntryMode.verify,
-      onVerify: _pinUtil.verifyPin,
-    );
-    if (!verified || !mounted) return;
+      final verified = await PinEntryDialog.show(
+        context,
+        mode: PinEntryMode.verify,
+        onVerify: _pinUtil.verifyPin,
+      );
+      if (!verified || !mounted) return;
 
-    final changed = await PinEntryDialog.show(
-      context,
-      mode: PinEntryMode.set,
-      onPinSet: (pin) async {
-        await _pinUtil.setPin(pin);
-      },
-    );
-    if (changed) _refresh();
+      final changed = await PinEntryDialog.show(
+        context,
+        mode: PinEntryMode.set,
+        onPinSet: (pin) async {
+          await _pinUtil.setPin(pin);
+        },
+      );
+      if (changed) _refresh();
     } finally {
       _pinActionInProgress = false;
     }
@@ -85,16 +85,16 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
     if (_pinActionInProgress) return;
     _pinActionInProgress = true;
     try {
-    final verified = await PinEntryDialog.show(
-      context,
-      mode: PinEntryMode.verify,
-      onVerify: _pinUtil.verifyPin,
-    );
-    if (!verified || !mounted) return;
+      final verified = await PinEntryDialog.show(
+        context,
+        mode: PinEntryMode.verify,
+        onVerify: _pinUtil.verifyPin,
+      );
+      if (!verified || !mounted) return;
 
-    await _pinUtil.removePin();
-    _suppressEnableUntil = DateTime.now().add(const Duration(milliseconds: 500));
-    _refresh();
+      await _pinUtil.removePin();
+      _suppressEnableUntil = DateTime.now().add(const Duration(milliseconds: 500));
+      _refresh();
     } finally {
       _pinActionInProgress = false;
     }
@@ -107,31 +107,29 @@ class _PinCodeSettingsScreenState extends State<PinCodeSettingsScreen> {
       if (suppressUntil != null && DateTime.now().isBefore(suppressUntil)) {
         return;
       }
+      await _setPin();
+      return;
+    }
+
+    if (!enabled && _pinEnabled) {
       _pinActionInProgress = true;
       try {
-      await _setPin();
+        final verified = await PinEntryDialog.show(
+          context,
+          mode: PinEntryMode.verify,
+          onVerify: _pinUtil.verifyPin,
+        );
+        if (!verified || !mounted) return;
+        await _pinUtil.setPinEnabled(false);
+        _refresh();
       } finally {
         _pinActionInProgress = false;
       }
-    } else if (!enabled && _pinEnabled) {
-      _pinActionInProgress = true;
-      try {
-      final verified = await PinEntryDialog.show(
-        context,
-        mode: PinEntryMode.verify,
-        onVerify: _pinUtil.verifyPin,
-      );
-      if (!verified || !mounted) return;
-      await _pinUtil.setPinEnabled(false);
-      _refresh();
     }
   }
 
   @override
   Widget build(BuildContext context) =>
-      } finally {
-        _pinActionInProgress = false;
-      }
       RequestInitialFocus(child: _buildContent(context));
 
   Widget _buildContent(BuildContext context) {
