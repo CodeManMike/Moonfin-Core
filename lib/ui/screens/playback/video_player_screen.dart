@@ -2100,6 +2100,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       return;
     }
     if (result.shouldAsk && result.isNew && result.segment != null) {
+      final isOutro = result.segment!.type == MediaSegmentType.outro;
+      if (replaceSkipOutroWithNextUp && isOutro && _shouldShowNextUpOverlay()) {
+        _presentNextUpOverlay();
+        return;
+      }
       setState(() {
         _skipSegment = result.segment;
         _skipTo = result.skipTo;
@@ -5378,12 +5383,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         options: options,
         selectedIndex: selectedIndex,
         useRootNavigator: false,
-        footer: _DelayFooter(
-          initialDelay: audio ? _audioDelay : _subtitleDelay,
-          label: audio ? l10n.audioDelay : l10n.subtitleDelay,
-          onDelayChanged: (d) => _applyDelay(audio: audio, delay: d),
-          formatDelay: _formatDelay,
-        ),
+        footer: _activeMedia3Backend == null
+            ? _DelayFooter(
+                initialDelay: audio ? _audioDelay : _subtitleDelay,
+                label: audio ? l10n.audioDelay : l10n.subtitleDelay,
+                onDelayChanged: (d) => _applyDelay(audio: audio, delay: d),
+                formatDelay: _formatDelay,
+              )
+            : null,
       );
       _suppressBackNavigation();
       if (result == null || !mounted) return;
