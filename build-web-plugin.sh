@@ -17,6 +17,7 @@ Notes:
   - This script builds Flutter web with base-href /Moonfin/Web/
   - It syncs build/web -> TARGET_PLUGIN_FRONTEND_DIR
   - config.json is excluded because the Plugin serves /Moonfin/Web/config.json dynamically
+  - theme/ is protected from build/web delete-sync and synced from web/theme
 EOF
 }
 
@@ -72,7 +73,16 @@ echo "Building Flutter web bundle for Moonfin plugin mode..."
 "$FLUTTER" build web --wasm --release --base-href "/Moonfin/Web/"
 
 mkdir -p "$TARGET_DIR"
-rsync -a --delete --exclude config.json "$REPO_ROOT/build/web/" "$TARGET_DIR/"
+rsync -a --delete --exclude config.json --exclude theme/ "$REPO_ROOT/build/web/" "$TARGET_DIR/"
+
+# Keep Theme Editor assets outside Flutter's build/web output so rsync --delete
+# cannot wipe them from the plugin frontend during sync.
+if [ -d "$REPO_ROOT/web/theme" ]; then
+  mkdir -p "$TARGET_DIR/theme"
+  rsync -a --delete "$REPO_ROOT/web/theme/" "$TARGET_DIR/theme/"
+else
+  echo "Warning: web/theme not found. Existing theme assets in target were preserved."
+fi
 
 echo "Synced build/web -> $TARGET_DIR"
 echo "config.json is excluded because Plugin serves /Moonfin/Web/config.json dynamically."

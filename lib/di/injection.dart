@@ -12,6 +12,7 @@ import '../data/repositories/offline_repository.dart';
 import '../data/services/connectivity_service.dart';
 import '../data/services/recent_searches_store.dart';
 import '../data/services/storage_path_service.dart';
+import '../platform/web_runtime_config.dart';
 import '../preference/preference_constants.dart';
 import '../preference/user_preferences.dart';
 import '../util/platform_detection.dart';
@@ -42,7 +43,11 @@ String _clientName() {
   if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
     return 'Moonfin for Android TV';
   }
-  if (PlatformDetection.isWeb) return 'Moonfin for Web';
+  if (PlatformDetection.isWeb) {
+    return webRuntimeConfig.pluginMode
+        ? 'Moonfin for Web'
+        : 'Moonfin on Github';
+  }
   if (PlatformDetection.isAndroid) return 'Moonfin for Android';
   if (PlatformDetection.isIOS) return 'Moonfin for iOS';
   if (PlatformDetection.isMacOS) return 'Moonfin for macOS';

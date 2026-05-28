@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../di/providers.dart';
+import '../../../platform/web_runtime_config.dart';
 import '../../../util/focus/dpad_keys.dart';
 import '../../../util/overlay_color_palette.dart';
 import '../../../util/platform_detection.dart';
@@ -60,6 +61,42 @@ class SettingsSidePanel extends ConsumerStatefulWidget {
 
 class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
   final _firstFocusNode = FocusNode(debugLabel: 'TvSettingsPanelFirstItem');
+
+  bool get _showThemeEditorEntry =>
+      PlatformDetection.isWeb && webRuntimeConfig.pluginMode;
+
+  Uri _resolveThemeEditorUri() {
+    final base = Uri.base;
+    final path = base.path;
+    final markerIndex = path.toLowerCase().indexOf('/moonfin/web');
+
+    final prefix = markerIndex >= 0 ? path.substring(0, markerIndex) : '';
+
+    return Uri(
+      scheme: base.scheme,
+      userInfo: base.userInfo,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: '$prefix/Moonfin/Web/theme/index.html',
+    );
+  }
+
+  Future<void> _openThemeEditor() async {
+    final uri = _resolveThemeEditorUri();
+    final ok = await launchUrl(
+      uri,
+      mode: PlatformDetection.isWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
+      webOnlyWindowName: '_blank',
+    );
+
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open $uri')),
+      );
+    }
+  }
 
   void _closeSettingsPanel() {
     final rootNavigator = Navigator.of(context, rootNavigator: true);
@@ -151,6 +188,13 @@ class _SettingsSidePanelState extends ConsumerState<SettingsSidePanel> {
         subtitle: l10n.settingsIntegrationsSubtitle,
         onTap: () => context.pushSettingsScreen(const _IntegrationsScreen()),
       ),
+      if (_showThemeEditorEntry)
+        _PanelEntry(
+          icon: Icons.brush,
+          title: 'Theme Editor',
+          subtitle: 'Open the Moonfin Theme Editor in your browser',
+          onTap: () => unawaited(_openThemeEditor()),
+        ),
       _PanelEntry(
         icon: Icons.info_outline,
         title: l10n.aboutTitle,
@@ -391,6 +435,7 @@ class _AuthenticationCategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hideWebOnlyAuthControls = PlatformDetection.isWeb;
     return Scaffold(
       appBar: buildSettingsAppBar(context, Text(l10n.settingsAccountSecurity)),
       body: ListView(
@@ -420,15 +465,16 @@ class _AuthenticationCategoryScreen extends StatelessWidget {
             onTap: () =>
                 context.pushSettingsScreen(const PinCodeSettingsScreen()),
           ),
-          EnumPreferenceTile<UserSortBy>(
-            preference: AuthenticationPreferences.sortBy,
-            title: l10n.settingsSortServersBy,
-            icon: Icons.swap_horiz,
-            labelOf: (v) => switch (v) {
-              UserSortBy.lastUsed => l10n.settingsLastUsed,
-              UserSortBy.alphabetical => l10n.settingsAlphabetical,
-            },
-          ),
+          if (!hideWebOnlyAuthControls)
+            EnumPreferenceTile<UserSortBy>(
+              preference: AuthenticationPreferences.sortBy,
+              title: l10n.settingsSortServersBy,
+              icon: Icons.swap_horiz,
+              labelOf: (v) => switch (v) {
+                UserSortBy.lastUsed => l10n.settingsLastUsed,
+                UserSortBy.alphabetical => l10n.settingsAlphabetical,
+              },
+            ),
           _SectionHeader(l10n.settingsPrivacyAndSafetySection),
           _TvSettingsListTile(
             leading: const Icon(Icons.family_restroom),
@@ -437,12 +483,13 @@ class _AuthenticationCategoryScreen extends StatelessWidget {
             onTap: () =>
                 context.pushSettingsScreen(const ParentalSettingsScreen()),
           ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.confirmExit,
-            title: l10n.confirmExit,
-            subtitle: l10n.showConfirmationBeforeExiting,
-            icon: Icons.exit_to_app,
-          ),
+          if (!hideWebOnlyAuthControls)
+            SwitchPreferenceTile(
+              preference: UserPreferences.confirmExit,
+              title: l10n.confirmExit,
+              subtitle: l10n.showConfirmationBeforeExiting,
+              icon: Icons.exit_to_app,
+            ),
         ],
       ),
     );
@@ -1753,7 +1800,7 @@ class _PlaybackCategoryScreen extends StatelessWidget {
               onTap: () =>
                   context.pushSettingsScreen(const _AutomationQueueScreen()),
             ),
-            if (!PlatformDetection.isTV)
+            if (!PlatformDetection.isTV && !PlatformDetection.isWeb)
               _TvSettingsListTile(
                 leading: const Icon(Icons.download),
                 title: Text(l10n.settingsOfflineDownloads),
@@ -1931,12 +1978,13 @@ class _VideoPlaybackScreen extends StatelessWidget {
                   l10n.settingsDisabledPreferTranscode,
               },
             ),
-          SwitchPreferenceTile(
-            preference: UserPreferences.hardwareDecoding,
-            title: l10n.hardwareDecoding,
-            subtitle: l10n.hardwareDecodingSubtitle,
-            icon: Icons.memory,
-          ),
+          if (!PlatformDetection.isWeb)
+            SwitchPreferenceTile(
+              preference: UserPreferences.hardwareDecoding,
+              title: l10n.hardwareDecoding,
+              subtitle: l10n.hardwareDecodingSubtitle,
+              icon: Icons.memory,
+            ),
           EnumPreferenceTile<RefreshRateSwitchingBehavior>(
             preference: UserPreferences.refreshRateSwitchingBehavior,
             title: l10n.refreshRateSwitching,
@@ -2631,7 +2679,9 @@ class _AdvancedOptionsScreenState extends State<_AdvancedOptionsScreen> {
               divisions: 20,
               labelOf: (v) => l10n.settingsMillisecondsValue(v.round()),
             ),
-            if (!PlatformDetection.isTV && !PlatformDetection.isIOS) ...[
+            if (!PlatformDetection.isTV &&
+                !PlatformDetection.isIOS &&
+                !PlatformDetection.isWeb) ...[
               SwitchPreferenceTile(
                 preference: UserPreferences.customMpvConfEnabled,
                 title: l10n.enableCustomMpvConf,

@@ -4459,7 +4459,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       shortcut: 'F11',
                     ),
             ),
-          if (PlatformDetection.useDesktopUi && !_isDesktopFullscreen)
+          if (PlatformDetection.useDesktopUi &&
+              !PlatformDetection.isWeb &&
+              !_isDesktopFullscreen)
             _controlButton(
               _isAlwaysOnTop ? Icons.push_pin : Icons.push_pin_outlined,
               onPressed: _toggleAlwaysOnTop,

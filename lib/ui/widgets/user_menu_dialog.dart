@@ -177,6 +177,33 @@ class _AccountDialogState extends State<_AccountDialog> {
     router.go(Destinations.serverSelect);
   }
 
+  Widget _buildPairedActionButtons({
+    required Widget first,
+    required Widget second,
+  }) {
+    if (PlatformDetection.isMobile) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(width: 170, child: first),
+            const SizedBox(width: 10),
+            SizedBox(width: 170, child: second),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 10),
+        Expanded(child: second),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -277,25 +304,27 @@ class _AccountDialogState extends State<_AccountDialog> {
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _ActionButton(
-                        label: l10n.selectServer,
-                        onPressed: _busy ? null : _changeServer,
-                        focusColor: focusColor,
+                child: PlatformDetection.isWeb
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: _ActionButton(
+                          label: l10n.signOut,
+                          onPressed: _busy ? null : _signOutCurrent,
+                          focusColor: focusColor,
+                        ),
+                      )
+                    : _buildPairedActionButtons(
+                        first: _ActionButton(
+                          label: l10n.selectServer,
+                          onPressed: _busy ? null : _changeServer,
+                          focusColor: focusColor,
+                        ),
+                        second: _ActionButton(
+                          label: l10n.signOut,
+                          onPressed: _busy ? null : _signOutCurrent,
+                          focusColor: focusColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _ActionButton(
-                        label: l10n.signOut,
-                        onPressed: _busy ? null : _signOutCurrent,
-                        focusColor: focusColor,
-                      ),
-                    ),
-                  ],
-                ),
               ),
               if (_accounts.length > 1) ...[
                 const SizedBox(height: 8),
@@ -336,52 +365,47 @@ class _AccountDialogState extends State<_AccountDialog> {
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _ActionButton(
-                          label: l10n.quickConnect,
-                          onPressed: _busy
-                              ? null
-                              : () => Navigator.of(
-                                  context,
-                                ).pop(_AccountDialogAction.quickConnect),
-                          focusColor: focusColor,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _ActionButton(
-                          label: l10n.remoteControl,
-                          onPressed: _busy
-                              ? null
-                              : () {
-                                  Navigator.of(context).pop();
-                                  showRemoteControlDialog(context);
-                                },
-                          focusColor: focusColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: _ActionButton(
-                      label: l10n.savedMedia,
+                  child: _buildPairedActionButtons(
+                    first: _ActionButton(
+                      label: l10n.quickConnect,
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(
+                              context,
+                            ).pop(_AccountDialogAction.quickConnect),
+                      focusColor: focusColor,
+                    ),
+                    second: _ActionButton(
+                      label: l10n.remoteControl,
                       onPressed: _busy
                           ? null
                           : () {
                               Navigator.of(context).pop();
-                              context.navigateTopLevel(Destinations.downloads);
+                              showRemoteControlDialog(context);
                             },
                       focusColor: focusColor,
                     ),
                   ),
                 ),
+                if (!PlatformDetection.isWeb) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _ActionButton(
+                        label: l10n.savedMedia,
+                        onPressed: _busy
+                            ? null
+                            : () {
+                                Navigator.of(context).pop();
+                                context.navigateTopLevel(Destinations.downloads);
+                              },
+                        focusColor: focusColor,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -650,6 +674,7 @@ class _ActionButtonState extends State<_ActionButton> {
         onTap: widget.onPressed,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
+          constraints: const BoxConstraints(minHeight: 52),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             color: enabled
@@ -682,6 +707,10 @@ class _ActionButtonState extends State<_ActionButton> {
           child: Center(
             child: Text(
               widget.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
@@ -749,8 +778,7 @@ class _AccountCardState extends State<_AccountCard> {
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = _focused || widget.active;
-    final borderColor = highlighted
+    final borderColor = _focused
         ? widget.focusColor
         : AppColorScheme.onSurface.withValues(alpha: 0.15);
 
