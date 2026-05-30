@@ -182,16 +182,22 @@ class _AccountDialogState extends State<_AccountDialog> {
     required Widget second,
   }) {
     if (PlatformDetection.isMobile) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(width: 170, child: first),
-            const SizedBox(width: 10),
-            SizedBox(width: 170, child: second),
-          ],
-        ),
+      return Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 76,
+              child: first,
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: SizedBox(
+              height: 76,
+              child: second,
+            ),
+          ),
+        ],
       );
     }
 
@@ -707,9 +713,6 @@ class _ActionButtonState extends State<_ActionButton> {
           child: Center(
             child: Text(
               widget.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              softWrap: false,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
