@@ -43,6 +43,20 @@ jobs:
           flutter --version
           flutter doctor -v
 
+      - name: Assert Flutter is using a native ARM64 Dart SDK
+        shell: pwsh
+        run: |
+          $dartVersion = (& dart --version 2>&1 | Out-String)
+          Write-Host $dartVersion
+
+          if ($dartVersion -notmatch 'windows_arm64|arm64') {
+            throw @"
+          Why wont you work
+          "@
+          }
+
+          Write-Host "OK: native ARM64 Dart SDK detected; flutter build windows will target arm64."
+
       - name: Enable Windows desktop
         shell: pwsh
         run: flutter config --enable-windows-desktop
@@ -94,12 +108,14 @@ jobs:
           VCPKG_DEFAULT_TRIPLET: arm64-windows
           VCPKG_TARGET_TRIPLET: arm64-windows
         run: |
-          if ($env:PROCESSOR_ARCHITECTURE -ne "ARM64") {
-            throw "Host arch is $env:PROCESSOR_ARCHITECTURE; Flutter targets the host arch on Windows, so this must be ARM64 to build an arm64 app."
-          }
           flutter clean
           flutter pub get
           flutter build windows --release --dart-define=DISTRIBUTION_CHANNEL=windows
+
+          if (-not (Test-Path "build\windows\arm64")) {
+            $produced = (Get-ChildItem build\windows -Directory | ForEach-Object { $_.Name }) -join ", "
+            throw "flutter build windows did not produce an arm64 target (found: $produced). Expected build\windows\arm64."
+          }
 
       - name: Verify ARM64 executable
         shell: pwsh
