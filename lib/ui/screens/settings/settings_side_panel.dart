@@ -724,6 +724,7 @@ class _NavigationCategoryScreen extends StatefulWidget {
 
 class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
   late final PreferenceBinding<bool> _showShuffleButtonBinding;
+  bool _navbarNormalizeQueued = false;
 
   @override
   void initState() {
@@ -743,6 +744,21 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final availableNavbarPositions = NavigationLayout.availableNavbarPositions;
+    final prefs = GetIt.instance<UserPreferences>();
+    final currentNavbarPosition = prefs.get(UserPreferences.navbarPosition);
+    if (!NavigationLayout.allowBottomNavbar &&
+        currentNavbarPosition == NavbarPosition.bottom &&
+        !_navbarNormalizeQueued) {
+      _navbarNormalizeQueued = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navbarNormalizeQueued = false;
+        if (!mounted) return;
+        prefs.set(UserPreferences.navbarPosition, NavbarPosition.top);
+        NavigationLayout.positionNotifier.value = NavbarPosition.top;
+        _pushPersonalizationSync();
+      });
+    }
     return ValueListenableBuilder<bool>(
       valueListenable: _showShuffleButtonBinding,
       builder: (context, showShuffleButton, _) => Scaffold(
@@ -753,9 +769,11 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
               preference: UserPreferences.navbarPosition,
               title: l10n.navigationStyle,
               icon: Icons.view_sidebar,
+              values: availableNavbarPositions,
               labelOf: (v) => switch (v) {
                 NavbarPosition.top => l10n.topBar,
                 NavbarPosition.left => l10n.leftSidebar,
+                NavbarPosition.bottom => 'Bottom Bar',
               },
               onChanged: () {
                 final pos = GetIt.instance<UserPreferences>().get(
@@ -1107,7 +1125,6 @@ class _PluginCategoryScreen extends StatelessWidget {
   }
 }
 
-// New: Seasonal Effects screen (moved from Visual Overlays)
 class _SeasonalEffectsScreen extends StatelessWidget {
   const _SeasonalEffectsScreen();
 
