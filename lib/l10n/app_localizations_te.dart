@@ -2071,6 +2071,25 @@ class AppLocalizationsTe extends AppLocalizations {
   String get playerZoomMode => 'ప్లేయర్ జూమ్ మోడ్';
 
   @override
+  String get settingsScrollWheelAction => 'Mouse scroll wheel';
+
+  @override
+  String get settingsScrollWheelActionDescription =>
+      'Choose what scrolling the mouse wheel over the video does during playback.';
+
+  @override
+  String get scrollWheelActionOff => 'Off';
+
+  @override
+  String get scrollWheelActionSeek => 'Seek (forward / back)';
+
+  @override
+  String get scrollWheelActionVolume => 'Volume';
+
+  @override
+  String get playerTooltipVolume => 'Volume';
+
+  @override
   String get fit => 'ఫిట్';
 
   @override

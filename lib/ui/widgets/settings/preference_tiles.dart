@@ -177,9 +177,9 @@ class SettingsListTypography extends StatelessWidget {
         splashColor: Colors.transparent,
       ),
       child: ListTileTheme(
-        tileColor: Colors.transparent,
-        selectedTileColor: Colors.transparent,
         data: ListTileTheme.of(context).copyWith(
+          tileColor: Colors.transparent,
+          selectedTileColor: Colors.transparent,
           titleTextStyle:
               theme.textTheme.bodyMedium?.merge(_kSettingsTitleTextStyle) ??
               _kSettingsTitleTextStyle,

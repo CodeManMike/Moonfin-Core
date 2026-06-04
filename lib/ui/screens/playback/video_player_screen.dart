@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -145,6 +146,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _isInPiP = false;
   bool _forcedLandscape = false;
   double _playerVolume = 100.0;
+  double _volumeBeforeMute = 1.0;
   int _media3VolumeBoostLevel = 0;
   bool _didRequestIosPiPForBackground = false;
   bool _isStartingIosPiPForBackground = false;
@@ -897,7 +899,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     if (PlatformDetection.isMobile) {
       _initBrightness();
-      _initMobileVolume();
+    }
+    if (_useSystemVolume) {
+      _initSystemVolume();
     }
   }
 
@@ -921,10 +925,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _removeZoomModeToastOverlay();
     _skipForwardTimer?.cancel();
     _skipBackwardTimer?.cancel();
-    if (PlatformDetection.isMobile) {
-      _brightnessListenerSub?.cancel();
+    if (_useSystemVolume) {
       _volumeListenerSub?.cancel();
       VolumeController.instance.removeListener();
+    }
+    if (PlatformDetection.isMobile) {
+      _brightnessListenerSub?.cancel();
       Future.microtask(() async {
         try {
           if (PlatformDetection.isIOS) {
@@ -3244,7 +3250,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                 ? (_) => _showControls()
                 : null,
             behavior: HitTestBehavior.opaque,
-            child: MouseRegion(
+            child: Listener(
+              onPointerSignal: PlatformDetection.useDesktopUi
+                  ? _handleScrollSignal
+                  : null,
+              child: MouseRegion(
               cursor: PlatformDetection.useDesktopUi && !_controlsVisible
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
@@ -3320,6 +3330,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                     ),
                 ],
               ),
+            ),
             ),
           ),
         ),
@@ -4646,6 +4657,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               extent: secondaryExtent,
               tooltip: l10n.playerTooltipCastControls,
             ),
+          if (PlatformDetection.useDesktopUi && _castService.activeKind == null)
+            _buildVolumeButton(
+              extent: secondaryExtent,
+              iconSize: secondaryIconSize,
+              tooltip: l10n.playerTooltipVolume,
+            ),
           _buildBitrateButton(
             extent: secondaryExtent,
             iconSize: secondaryIconSize,
@@ -4883,6 +4900,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     await backend.setVolumeBoostLevel(clampedLevel);
   }
 
+  bool get _useSystemVolume =>
+      PlatformDetection.isMobile || PlatformDetection.isDesktop;
+
   Future<void> _changeVolumeBy(double delta) async {
     final castKind = _castService.activeKind;
     if (castKind != null) {
@@ -4892,7 +4912,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       return;
     }
 
-    if (PlatformDetection.isMobile) {
+    if (_useSystemVolume) {
       final media3Backend = _activeMedia3Backend;
       if (media3Backend != null) {
         _syncMedia3VolumeBoostLevel();
@@ -4924,6 +4944,27 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _playerVolume = next;
     await backend.setVolume(next);
     _showVolumeIndicator();
+  }
+
+  void _handleScrollSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    final dy = event.scrollDelta.dy;
+    if (dy == 0) return;
+    final action = _prefs.get(UserPreferences.desktopScrollWheelAction);
+    // scrollDelta.dy is negative when scrolling up / away from the user.
+    final scrollingUp = dy < 0;
+    switch (action) {
+      case DesktopScrollWheelAction.off:
+        return;
+      case DesktopScrollWheelAction.volume:
+        unawaited(_changeVolumeBy(scrollingUp ? 0.05 : -0.05));
+        _showControls();
+      case DesktopScrollWheelAction.seek:
+        final step = scrollingUp
+            ? _prefs.get(UserPreferences.skipForwardLength)
+            : _prefs.get(UserPreferences.skipBackLength);
+        _seekRelative(scrollingUp ? step : -step);
+    }
   }
 
   void _initBrightness() {
@@ -4974,11 +5015,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     });
   }
 
-  void _initMobileVolume() {
+  void _initSystemVolume() {
     final vc = VolumeController.instance;
     vc.showSystemUI = false;
 
-    // Mobile volume gestures should map directly to system volume.
     _playerVolume = 100.0;
     unawaited(_manager.backend?.setVolume(100.0));
 
@@ -5193,9 +5233,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   Widget _buildVolumeOverlay() {
-    final isMobile = PlatformDetection.isMobile;
-    final displayVolume = isMobile ? _systemVolume : _playerVolume / 100.0;
-    final usingMedia3Boost = isMobile && _activeMedia3Backend != null;
+    final displayVolume = _useSystemVolume
+        ? _systemVolume
+        : _playerVolume / 100.0;
+    final usingMedia3Boost =
+        PlatformDetection.isMobile && _activeMedia3Backend != null;
     final overlayProgress = usingMedia3Boost
         ? ((displayVolume * 100.0) + (_media3VolumeBoostLevel * 10.0)).clamp(
                 0.0,
@@ -5511,6 +5553,138 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
       ),
+    );
+  }
+
+  IconData _volumeIcon(double fraction) => fraction <= 0
+      ? Icons.volume_off_rounded
+      : fraction < 0.5
+      ? Icons.volume_down_rounded
+      : Icons.volume_up_rounded;
+
+  double get _osdVolume =>
+      _useSystemVolume ? _systemVolume : _playerVolume / 100.0;
+
+  void _setOsdVolume(double fraction) {
+    final clamped = fraction.clamp(0.0, 1.0).toDouble();
+    if (_useSystemVolume) {
+      unawaited(_setMobileSystemVolume(clamped, syncFromSystem: true));
+    } else {
+      setState(() => _playerVolume = clamped * 100.0);
+      _manager.backend?.setVolume(_playerVolume);
+    }
+    _showControls();
+  }
+
+  void _toggleMute() {
+    if (_osdVolume > 0) {
+      _volumeBeforeMute = _osdVolume;
+      _setOsdVolume(0);
+    } else {
+      _setOsdVolume(_volumeBeforeMute > 0 ? _volumeBeforeMute : 1.0);
+    }
+  }
+
+  Widget _buildVolumeButton({
+    double extent = 48,
+    double iconSize = 24,
+    String? tooltip,
+  }) {
+    return MenuAnchor(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(
+          Colors.black.withValues(alpha: 0.85),
+        ),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+      ),
+      menuChildren: [_buildVolumeSliderMenu()],
+      builder: (context, controller, child) {
+        return SizedBox(
+          width: extent,
+          height: extent,
+          child: IconButton(
+            tooltip: tooltip,
+            onPressed: () {
+              _showControls();
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: Icon(
+              _volumeIcon(_osdVolume),
+              color: Colors.white,
+              size: iconSize,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVolumeSliderMenu() {
+    return StatefulBuilder(
+      builder: (context, setMenuState) {
+        void apply(double v) {
+          setMenuState(() {});
+          _setOsdVolume(v);
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: SizedBox(
+            width: 220,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: _osdVolume <= 0
+                      ? AppLocalizations.of(context).unmute
+                      : AppLocalizations.of(context).mute,
+                  onPressed: () {
+                    setMenuState(() {});
+                    _toggleMute();
+                  },
+                  icon: Icon(
+                    _volumeIcon(_osdVolume),
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: AppColorScheme.accent,
+                      inactiveTrackColor: Colors.white24,
+                      thumbColor: Colors.white,
+                      overlayColor: Colors.white24,
+                    ),
+                    child: Slider(
+                      value: _osdVolume.clamp(0.0, 1.0),
+                      min: 0,
+                      max: 1,
+                      onChanged: apply,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 38,
+                  child: Text(
+                    '${(_osdVolume * 100).round()}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

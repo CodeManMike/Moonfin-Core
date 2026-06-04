@@ -542,6 +542,12 @@ class UserPreferences extends ChangeNotifier {
     values: ZoomMode.values,
   );
 
+  static final desktopScrollWheelAction = EnumPreference(
+    key: 'desktop_scroll_wheel_action',
+    defaultValue: DesktopScrollWheelAction.volume,
+    values: DesktopScrollWheelAction.values,
+  );
+
   static final trickPlayEnabled = Preference(
     key: 'trick_play_enabled',
     defaultValue: false,

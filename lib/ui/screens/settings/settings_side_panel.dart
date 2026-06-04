@@ -1960,6 +1960,18 @@ class _VideoPlaybackScreen extends StatelessWidget {
             subtitle: l10n.showPreviewThumbnailsWhenSeeking,
             icon: Icons.image_search,
           ),
+          if (PlatformDetection.useDesktopUi)
+            EnumPreferenceTile<DesktopScrollWheelAction>(
+              preference: UserPreferences.desktopScrollWheelAction,
+              title: l10n.settingsScrollWheelAction,
+              description: l10n.settingsScrollWheelActionDescription,
+              icon: Icons.mouse_outlined,
+              labelOf: (v) => switch (v) {
+                DesktopScrollWheelAction.off => l10n.scrollWheelActionOff,
+                DesktopScrollWheelAction.seek => l10n.scrollWheelActionSeek,
+                DesktopScrollWheelAction.volume => l10n.scrollWheelActionVolume,
+              },
+            ),
           StringPickerPreferenceTile(
             preference: UserPreferences.resumeSubtractDuration,
             title: l10n.resumeRewind,

@@ -2918,6 +2918,30 @@
   "@playerZoomMode": {
     "description": "Setting for player zoom mode"
   },
+  "settingsScrollWheelAction": "Mouse scroll wheel",
+  "@settingsScrollWheelAction": {
+    "description": "Setting title for the mouse scroll wheel action during playback"
+  },
+  "settingsScrollWheelActionDescription": "Choose what scrolling the mouse wheel over the video does during playback.",
+  "@settingsScrollWheelActionDescription": {
+    "description": "Description for the mouse scroll wheel action setting"
+  },
+  "scrollWheelActionOff": "Off",
+  "@scrollWheelActionOff": {
+    "description": "Scroll wheel action option: do nothing"
+  },
+  "scrollWheelActionSeek": "Seek (forward / back)",
+  "@scrollWheelActionSeek": {
+    "description": "Scroll wheel action option: seek forward and back"
+  },
+  "scrollWheelActionVolume": "Volume",
+  "@scrollWheelActionVolume": {
+    "description": "Scroll wheel action option: adjust volume"
+  },
+  "playerTooltipVolume": "Volume",
+  "@playerTooltipVolume": {
+    "description": "Tooltip for the volume control button in the player OSD"
+  },
   "fit": "Fit",
   "@fit": {
     "description": "Zoom mode: fit"

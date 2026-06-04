@@ -3743,6 +3743,42 @@ abstract class AppLocalizations {
   /// **'Player Zoom Mode'**
   String get playerZoomMode;
 
+  /// Setting title for the mouse scroll wheel action during playback
+  ///
+  /// In en, this message translates to:
+  /// **'Mouse scroll wheel'**
+  String get settingsScrollWheelAction;
+
+  /// Description for the mouse scroll wheel action setting
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what scrolling the mouse wheel over the video does during playback.'**
+  String get settingsScrollWheelActionDescription;
+
+  /// Scroll wheel action option: do nothing
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get scrollWheelActionOff;
+
+  /// Scroll wheel action option: seek forward and back
+  ///
+  /// In en, this message translates to:
+  /// **'Seek (forward / back)'**
+  String get scrollWheelActionSeek;
+
+  /// Scroll wheel action option: adjust volume
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get scrollWheelActionVolume;
+
+  /// Tooltip for the volume control button in the player OSD
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get playerTooltipVolume;
+
   /// Zoom mode: fit
   ///
   /// In en, this message translates to:

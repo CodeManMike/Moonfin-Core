@@ -123,6 +123,12 @@ enum ZoomMode {
   stretch,
 }
 
+enum DesktopScrollWheelAction {
+  off,
+  seek,
+  volume,
+}
+
 enum AppTheme {
   white(0xFFFFFFFF),
   black(0xFF000000),
