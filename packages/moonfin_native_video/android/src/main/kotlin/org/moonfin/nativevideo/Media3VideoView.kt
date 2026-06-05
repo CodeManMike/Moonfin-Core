@@ -477,6 +477,10 @@ class Media3VideoView(
     private var audioOffloadDisabled = false
     private var audioOffloadRetryAttemptedForCurrentSource = false
     private var sessionTunnelingDisabled = Media3Bridge.sessionTunnelingDisabledEnabled()
+    private var currentAudioIsBitstream = false
+    private var tunnelingActive = false
+    private var audioRekickRunnable: Runnable? = null
+    private var suppressStateEmissionsForRekick = false
     private var skipSilenceEnabled = false
     private var subtitleDelayMs = 0L
     private var audioDelayMs = 0L
@@ -503,6 +507,52 @@ class Media3VideoView(
         pendingCueRunnable = null
         if (clearView) {
             subtitleView.setCues(emptyList())
+        }
+    }
+
+    /**
+     * Encoded surround formats that Android TV typically bitstreams (passes
+     * through) to an AVR/soundbar rather than decoding to PCM.
+     */
+    private fun isBitstreamAudioMime(mime: String?): Boolean = when (mime) {
+        MimeTypes.AUDIO_AC3,
+        MimeTypes.AUDIO_E_AC3,
+        MimeTypes.AUDIO_E_AC3_JOC,
+        MimeTypes.AUDIO_AC4,
+        MimeTypes.AUDIO_TRUEHD,
+        MimeTypes.AUDIO_DTS,
+        MimeTypes.AUDIO_DTS_HD,
+        MimeTypes.AUDIO_DTS_X -> true
+        else -> false
+    }
+
+    private fun scheduleAudioRekickAfterSeek() {
+        if (!player.playWhenReady) return
+        if (!currentAudioIsBitstream && !tunnelingActive) return
+        cancelPendingAudioRekick()
+        val runnable = Runnable {
+            audioRekickRunnable = null
+            performAudioRekick()
+        }
+        audioRekickRunnable = runnable
+        mainHandler.postDelayed(runnable, 200L)
+    }
+
+    private fun cancelPendingAudioRekick() {
+        audioRekickRunnable?.let { mainHandler.removeCallbacks(it) }
+        audioRekickRunnable = null
+    }
+
+    private fun performAudioRekick() {
+        if (isDisposed || !player.playWhenReady) return
+        suppressStateEmissionsForRekick = true
+        player.playWhenReady = false
+        mainHandler.post {
+            if (!isDisposed) {
+                player.playWhenReady = true
+            }
+            suppressStateEmissionsForRekick = false
+            if (!isDisposed) emitState()
         }
     }
 
@@ -641,6 +691,7 @@ class Media3VideoView(
                 reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT
             ) {
                 cancelPendingSubtitleCue(clearView = true)
+                scheduleAudioRekickAfterSeek()
             }
         }
 
@@ -669,6 +720,14 @@ class Media3VideoView(
             if (frameRate.isFinite() && frameRate > 0f) {
                 maybeApplyFrameRateSwitching(frameRate)
             }
+        }
+
+        override fun onAudioInputFormatChanged(
+            eventTime: AnalyticsListener.EventTime,
+            format: Format,
+            decoderReuseEvaluation: DecoderReuseEvaluation?,
+        ) {
+            currentAudioIsBitstream = isBitstreamAudioMime(format.sampleMimeType)
         }
 
         override fun onAudioSinkError(
@@ -710,6 +769,7 @@ class Media3VideoView(
     override fun dispose() {
         isDisposed = true
         cancelPendingSubtitleCue(clearView = false)
+        cancelPendingAudioRekick()
         stopTicker()
         closeExternalAudioEffectSessionIfOpen()
         currentAudioSessionId = C.AUDIO_SESSION_ID_UNSET
@@ -1518,6 +1578,8 @@ class Media3VideoView(
             !isAudioContent &&
                 !hasExternalSubtitle &&
                 !sessionTunnelingDisabled
+
+        tunnelingActive = shouldEnableTunneling
 
         val offloadMode = if (isAudioContent && !audioOffloadDisabled) {
             TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
@@ -2555,6 +2617,7 @@ class Media3VideoView(
     }
 
     private fun emitState() {
+        if (suppressStateEmissionsForRekick) return
         Media3Bridge.emitEvent(stateMap() + ("event" to "state"))
     }
 
