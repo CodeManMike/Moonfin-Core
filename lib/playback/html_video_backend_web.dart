@@ -9,6 +9,7 @@ import 'package:web/web.dart' as web;
 
 import '../preference/user_preferences.dart';
 import 'html_video_backend_profile.dart';
+import 'web_subtitle_overlay_web.dart';
 
 extension type _MoonfinHlsBridge._(JSObject _) implements JSObject {
   external JSBoolean canUseHlsJs(
@@ -42,6 +43,10 @@ class HtmlVideoBackend implements PlayerBackend {
   late final web.HTMLVideoElement _videoElement;
   final List<web.HTMLTrackElement> _externalTracks = <web.HTMLTrackElement>[];
   JSAny? _hlsController;
+
+  WebSubtitleOverlay? _subtitleOverlay;
+  WebSubtitleOverlay get _overlay =>
+      _subtitleOverlay ??= WebSubtitleOverlay(_videoElement);
 
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -280,6 +285,7 @@ class HtmlVideoBackend implements PlayerBackend {
       track.remove();
     }
     _externalTracks.clear();
+    _subtitleOverlay?.clear();
   }
 
   @override
@@ -451,6 +457,8 @@ class HtmlVideoBackend implements PlayerBackend {
       return;
     }
 
+    _subtitleOverlay?.clear();
+
     try {
       final dynamic tracks = (_videoElement as dynamic).textTracks;
       final length = (tracks.length as num?)?.toInt() ?? 0;
@@ -464,6 +472,7 @@ class HtmlVideoBackend implements PlayerBackend {
   @override
   Future<void> disableSubtitleTrack() async {
     if (_disposed) return;
+    _subtitleOverlay?.clear();
     try {
       final dynamic tracks = (_videoElement as dynamic).textTracks;
       final length = (tracks.length as num?)?.toInt() ?? 0;
@@ -513,6 +522,11 @@ class HtmlVideoBackend implements PlayerBackend {
   }) async {
     if (_disposed || url.isEmpty) return;
 
+    if (WebSubtitleOverlay.isOverlayCodec(codec)) {
+      await _overlay.show(url, codec);
+      return;
+    }
+
     final track = web.HTMLTrackElement()
       ..kind = 'subtitles'
       ..src = url
@@ -553,7 +567,7 @@ class HtmlVideoBackend implements PlayerBackend {
   bool get nativelyHandlesStartPosition => true;
 
   @override
-  bool get canRenderBitmapSubtitles => false;
+  bool get canRenderBitmapSubtitles => true;
 
   Widget buildView({BoxFit fit = BoxFit.contain}) {
     _videoElement.style.objectFit = _cssObjectFit(fit);
@@ -585,6 +599,8 @@ class HtmlVideoBackend implements PlayerBackend {
     _disposed = true;
     _stopStatePolling();
     _clearExternalTracks();
+    _subtitleOverlay?.dispose();
+    _subtitleOverlay = null;
     _detachHlsJsSource();
     _videoElement.pause();
     _videoElement.removeAttribute('src');

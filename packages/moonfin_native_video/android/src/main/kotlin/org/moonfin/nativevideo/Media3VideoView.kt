@@ -76,6 +76,8 @@ import io.github.peerless2012.ass.media.kt.withAssMkvSupport
 import io.github.peerless2012.ass.media.kt.withAssSupport
 import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
 import io.github.peerless2012.ass.media.type.AssRenderType
+import io.github.peerless2012.ass.media.widget.AssSubtitleView
+import java.io.File
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
@@ -339,6 +341,21 @@ class Media3VideoView(
     companion object {
         private const val TS_SEARCH_BYTES_LOW_RAM = TsExtractor.TS_PACKET_SIZE * 1800
         private const val TS_SEARCH_BYTES_DEFAULT = TsExtractor.DEFAULT_TIMESTAMP_SEARCH_BYTES
+        private const val ASS_FALLBACK_FONT_ASSET = "fonts/NotoSans-Regular.ttf"
+        private const val ASS_FALLBACK_FONT_NAME = "Noto Sans"
+        private val ASS_SYSTEM_CJK_FONTS = listOf(
+            "NotoSansCJK-Regular.ttc",
+            "NotoSerifCJK-Regular.ttc",
+            "DroidSansFallbackFull.ttf",
+            "DroidSansFallback.ttf",
+        )
+        private val ASS_SYSTEM_SCRIPT_FONTS = listOf(
+            "NotoNaskhArabic-Regular.ttf",
+            "NotoSansArabic-Regular.ttf",
+            "NotoSansDevanagari-Regular.ttf",
+            "NotoSansThai-Regular.ttf",
+            "NotoSansHebrew-Regular.ttf",
+        )
     }
 
     private fun DefaultExtractorsFactory.setTsPayloadReaderFactoryFlagsCompat(
@@ -490,6 +507,12 @@ class Media3VideoView(
     private var selectUndeterminedTextLanguage = false
     private var subtitleEmbeddedStylesEnabled = true
     private var subtitleEmbeddedFontSizesEnabled = true
+    private var assFallbackFontBytes: ByteArray? = null
+    private val subtitleTypeface: Typeface? by lazy {
+        runCatching {
+            Typeface.createFromAsset(context.assets, ASS_FALLBACK_FONT_ASSET)
+        }.getOrNull()
+    }
     // Single pending runnable for delayed cue rendering (positive subtitle delay).
     // Replaced on every new cue group; cancelled on seek, source change, and dispose.
     private var pendingCueRunnable: Runnable? = null
@@ -808,7 +831,8 @@ class Media3VideoView(
         httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
         val bootDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-        val assHandler = AssHandler(AssRenderType.CUES)
+        val assHandler = AssHandler(AssRenderType.OVERLAY_OPEN_GL)
+        registerAssFonts(assHandler)
         val assParserFactory = AssSubtitleParserFactory(assHandler)
         val bootMediaSourceFactory = DefaultMediaSourceFactory(
             bootDataSourceFactory,
@@ -825,6 +849,7 @@ class Media3VideoView(
             .setPauseAtEndOfMediaItems(true)
             .build()
             .also {
+                attachAssOverlay(assHandler)
                 assHandler.init(it)
                 if (useSurfaceView) {
                     it.setVideoSurfaceView(videoView as SurfaceView)
@@ -835,6 +860,40 @@ class Media3VideoView(
                 it.addAnalyticsListener(analyticsListener)
                 Media3SessionController.attachPlayer(context, it)
             }
+    }
+
+    private fun registerAssFonts(assHandler: AssHandler) {
+        if (assFallbackFontBytes == null) {
+            assFallbackFontBytes = runCatching {
+                context.assets.open(ASS_FALLBACK_FONT_ASSET).use { it.readBytes() }
+            }.getOrNull()
+        }
+        assFallbackFontBytes?.let { bytes ->
+            runCatching { assHandler.addFont(ASS_FALLBACK_FONT_NAME, bytes) }
+        }
+        registerSystemFallbackFonts(assHandler)
+    }
+
+    private fun registerSystemFallbackFonts(assHandler: AssHandler) {
+        val dir = File("/system/fonts")
+        if (!dir.isDirectory) return
+        val names = ArrayList<String>()
+        ASS_SYSTEM_CJK_FONTS.firstOrNull { File(dir, it).canRead() }?.let { names.add(it) }
+        names.addAll(ASS_SYSTEM_SCRIPT_FONTS)
+        for (name in names) {
+            val file = File(dir, name)
+            if (!file.canRead()) continue
+            runCatching { assHandler.addFont(file.nameWithoutExtension, file.readBytes()) }
+        }
+    }
+
+    private fun attachAssOverlay(assHandler: AssHandler) {
+        for (i in subtitleView.childCount - 1 downTo 0) {
+            if (subtitleView.getChildAt(i) is AssSubtitleView) {
+                subtitleView.removeViewAt(i)
+            }
+        }
+        subtitleView.withAssSupport(assHandler)
     }
 
     private fun rebuildPlayerForDecoderPreference() {
@@ -2083,7 +2142,7 @@ class Media3VideoView(
         }
         refreshSubtitleRendererMode()
 
-        val baseTypeface = Typeface.DEFAULT
+        val baseTypeface = subtitleTypeface ?: Typeface.DEFAULT
         val resolvedTypeface = if (bold) {
             Typeface.create(baseTypeface, Typeface.BOLD)
         } else {
