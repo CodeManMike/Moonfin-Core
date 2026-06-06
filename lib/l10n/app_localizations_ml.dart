@@ -827,6 +827,11 @@ class AppLocalizationsMl extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'കാണുക';
 
   @override
@@ -7099,6 +7104,18 @@ class AppLocalizationsMl extends AppLocalizations {
   @override
   String get settingsSkipIntrosAndOutros =>
       'ആമുഖങ്ങളും ഔട്ട്റോകളും ഒഴിവാക്കണോ?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'പ്രോംപ്റ്റ് ഉപയോക്താവ്';

@@ -794,6 +794,11 @@ class AppLocalizationsYue extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => '看法';
 
   @override
@@ -6789,6 +6794,18 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => '跳過片頭和片尾？';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => '提示用戶';

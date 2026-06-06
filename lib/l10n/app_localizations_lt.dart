@@ -821,6 +821,11 @@ class AppLocalizationsLt extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Žiūrėti';
 
   @override
@@ -7036,6 +7041,18 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => 'Praleisti įžangas ir pabaigas?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Raginti vartotoją';

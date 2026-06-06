@@ -829,6 +829,11 @@ class AppLocalizationsSq extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Shiko';
 
   @override
@@ -7073,6 +7078,18 @@ class AppLocalizationsSq extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => 'Të kapërcehen hyrjet dhe daljet?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Përdoruesi i shpejtë';

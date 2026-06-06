@@ -825,6 +825,11 @@ class AppLocalizationsMk extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Прикажи';
 
   @override
@@ -7062,6 +7067,18 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => 'Прескокнете воведни и аутроси?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Пратен корисник';

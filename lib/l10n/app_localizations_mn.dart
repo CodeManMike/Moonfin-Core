@@ -823,6 +823,11 @@ class AppLocalizationsMn extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Харах';
 
   @override
@@ -7038,6 +7043,18 @@ class AppLocalizationsMn extends AppLocalizations {
   @override
   String get settingsSkipIntrosAndOutros =>
       'Танилцуулга болон гадуурх хэсгийг алгасах уу?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Шуурхай хэрэглэгч';

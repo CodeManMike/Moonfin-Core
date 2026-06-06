@@ -827,6 +827,11 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Xem';
 
   @override
@@ -7021,6 +7026,18 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get settingsSkipIntrosAndOutros =>
       'Bỏ qua phần giới thiệu và phần kết thúc?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Nhắc người dùng';

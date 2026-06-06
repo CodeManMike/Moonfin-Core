@@ -825,6 +825,11 @@ class AppLocalizationsCy extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Golwg';
 
   @override
@@ -7033,6 +7038,18 @@ class AppLocalizationsCy extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => 'Hepgor Intros a Outros?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Defnyddiwr Prydlon';

@@ -824,6 +824,11 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
+  String endsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
   String get view => 'Pohled';
 
   @override
@@ -7019,6 +7024,18 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get settingsSkipIntrosAndOutros => 'Přeskočit úvody a závěry?';
+
+  @override
+  String get settingsMediaSegmentCountdown => 'Media Segment Countdown';
+
+  @override
+  String get settingsProgressBar => 'Progress Bar';
+
+  @override
+  String get settingsTimer => 'Timer';
+
+  @override
+  String get settingsNone => 'None';
 
   @override
   String get settingsPromptUser => 'Vyzvat uživatele';
