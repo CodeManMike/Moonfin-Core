@@ -781,11 +781,14 @@ class _NavigationCategoryScreen extends StatefulWidget {
 
 class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
   late final PreferenceBinding<bool> _showShuffleButtonBinding;
+  late final PluginSyncService _syncService;
   bool _navbarNormalizeQueued = false;
 
   @override
   void initState() {
     super.initState();
+    _syncService = GetIt.instance<PluginSyncService>();
+    _syncService.addListener(_onSyncChanged);
     _showShuffleButtonBinding = PreferenceBinding(
       GetIt.instance<PreferenceStore>(),
       UserPreferences.showShuffleButton,
@@ -794,8 +797,13 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
 
   @override
   void dispose() {
+    _syncService.removeListener(_onSyncChanged);
     _showShuffleButtonBinding.dispose();
     super.dispose();
+  }
+
+  void _onSyncChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -883,7 +891,7 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
               icon: Icons.video_library,
               onChanged: _pushPersonalizationSync,
             ),
-            if (seerrEnabledOnAccount)
+            if (seerrEnabledOnAccount && _syncService.seerrAvailable)
               SwitchPreferenceTile(
                 preference: UserPreferences.showSeerrButton,
                 title: l10n.showSeerrButton,
@@ -895,6 +903,7 @@ class _NavigationCategoryScreenState extends State<_NavigationCategoryScreen> {
                 ),
                 onChanged: _pushPersonalizationSync,
               ),
+
           ],
         ),
       ),
@@ -2521,6 +2530,7 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
             EnumPreferenceTile<AudioOutputMode>(
               preference: UserPreferences.audioOutputMode,
               title: l10n.settingsAudioOutputMode,
+              description: l10n.settingsAudioOutputModeDescription,
               icon: Icons.surround_sound,
               labelOf: (v) => switch (v) {
                 AudioOutputMode.auto => l10n.auto,
@@ -2529,16 +2539,37 @@ class _AudioPreferencesScreenState extends State<_AudioPreferencesScreen> {
                   l10n.settingsAudioOutputModeAvrPassthrough,
               },
             ),
+          IntPickerPreferenceTile(
+            preference: UserPreferences.maxAudioChannels,
+            title: l10n.settingsMaxAudioChannels,
+            description: l10n.settingsMaxAudioChannelsDescription,
+            icon: Icons.speaker_group,
+            options: <int, String>{
+              0: l10n.settingsMaxAudioChannelsAuto,
+              1: l10n.settingsMaxAudioChannelsMono,
+              2: l10n.settingsMaxAudioChannelsStereo,
+              3: l10n.settingsMaxAudioChannels3_0,
+              4: l10n.settingsMaxAudioChannels4_0,
+              5: l10n.settingsMaxAudioChannels5_0,
+              6: l10n.settingsMaxAudioChannels5_1,
+              7: l10n.settingsMaxAudioChannels6_1,
+              8: l10n.settingsMaxAudioChannels7_1,
+            },
+          ),
           EnumPreferenceTile<AudioFallbackCodec>(
             preference: UserPreferences.audioFallbackCodec,
             title: l10n.settingsAudioFallbackCodec,
+            description: l10n.settingsAudioFallbackCodecDescription,
             icon: Icons.hearing,
             labelOf: (v) => switch (v) {
-              AudioFallbackCodec.auto => l10n.auto,
-              AudioFallbackCodec.aacStereo =>
-                l10n.settingsAudioFallbackAacStereo,
-              AudioFallbackCodec.ac3_5_1 => l10n.settingsAudioFallbackAc35_1,
-              AudioFallbackCodec.eac3_5_1 => l10n.settingsAudioFallbackEac35_1,
+              AudioFallbackCodec.auto => l10n.settingsAudioFallbackCodecAuto,
+              AudioFallbackCodec.aac => l10n.settingsAudioFallbackCodecAac,
+              AudioFallbackCodec.ac3 => l10n.settingsAudioFallbackCodecAc3,
+              AudioFallbackCodec.eac3 => l10n.settingsAudioFallbackCodecEac3,
+              AudioFallbackCodec.truehd => l10n.settingsAudioFallbackCodecTrueHd,
+              AudioFallbackCodec.mp3 => l10n.settingsAudioFallbackCodecMp3,
+              AudioFallbackCodec.opus => l10n.settingsAudioFallbackCodecOpus,
+              AudioFallbackCodec.flac => l10n.settingsAudioFallbackCodecFlac,
             },
           ),
 

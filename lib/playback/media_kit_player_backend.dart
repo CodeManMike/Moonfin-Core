@@ -168,7 +168,7 @@ class _MediaKitDeviceProfileCapabilities {
   }
 }
 
-class MediaKitPlayerBackend implements PlayerBackend {
+class MediaKitPlayerBackend extends PlayerBackend {
   static const Duration _linuxHwdecFirstFrameTimeout = Duration(
     milliseconds: 1500,
   );
@@ -187,6 +187,35 @@ class MediaKitPlayerBackend implements PlayerBackend {
   DateTime? _appliedCustomMpvConfMtime;
   static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
       <String, _ParsedMpvConfCacheEntry>{};
+
+  static String _mpvAudioChannelsLayout(int channels) {
+    return switch (channels) {
+      1 => 'mono',
+      2 => 'stereo',
+      3 => '2.1',
+      4 => '3.1',
+      5 => '4.1',
+      6 => '5.1',
+      7 => '6.1',
+      8 => '7.1',
+      _ => 'auto',
+    };
+  }
+
+  static bool _passthroughActive(UserPreferences prefs) {
+    return passthroughCodecsFromPreferences(
+      audioOutputMode: prefs.resolveAudioOutputMode(),
+      ac3PassthroughEnabled: prefs.resolveAc3PassthroughEnabled(),
+      eac3PassthroughEnabled: prefs.resolveEac3PassthroughEnabled(),
+      eac3JocPassthroughEnabled: prefs.resolveEac3JocPassthroughEnabled(),
+      dtsCorePassthroughEnabled: prefs.resolveDtsCorePassthroughEnabled(),
+      dtsHdPassthroughEnabled: prefs.resolveDtsHdPassthroughEnabled(),
+      dtsXPassthroughEnabled: prefs.resolveDtsXPassthroughEnabled(),
+      trueHdPassthroughEnabled: prefs.resolveTrueHdPassthroughEnabled(),
+      trueHdAtmosPassthroughEnabled:
+          prefs.resolveTrueHdAtmosPassthroughEnabled(),
+    ).isNotEmpty;
+  }
 
   bool _isStale = false;
   String? _currentUrl;
@@ -337,16 +366,19 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final platform = player.platform;
     if (platform is NativePlayer) {
       _nativeSetProperty(platform, 'network-timeout', '120');
+
+      final maxChannels = prefs.get(UserPreferences.maxAudioChannels);
+      final audioChannelsLayout = (maxChannels == 0 || _passthroughActive(prefs))
+          ? (PlatformDetection.isIOS ? 'stereo' : 'auto')
+          : _mpvAudioChannelsLayout(maxChannels);
+      _nativeSetProperty(platform, 'audio-channels', audioChannelsLayout);
+
       if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
         // Prefer AudioTrack + preloaded scaletempo2 for stable TV speed changes.
         _nativeSetProperty(platform, 'ao', 'audiotrack');
         _nativeSetProperty(platform, 'af', 'scaletempo2');
-        _nativeSetProperty(platform, 'audio-channels', 'auto');
         _nativeSetProperty(platform, 'audio-normalize-downmix', 'no');
         _nativeSetProperty(platform, 'audio-fallback-to-null', 'no');
-      }
-      if (PlatformDetection.isIOS) {
-        _nativeSetProperty(platform, 'audio-channels', 'stereo');
       }
       if (PlatformDetection.isIOS || PlatformDetection.isAndroid) {
         _nativeSetProperty(platform, 'tone-mapping', 'auto');
@@ -455,10 +487,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
       trueHdPassthroughEnabled: _prefs.resolveTrueHdPassthroughEnabled(),
       trueHdAtmosPassthroughEnabled: _prefs
           .resolveTrueHdAtmosPassthroughEnabled(),
-      downMixAudio:
-          _prefs.resolveAudioOutputMode() == AudioOutputMode.forceStereo,
-      audioFallbackToStereoAac:
-          _prefs.resolveAudioFallbackCodec() == AudioFallbackCodec.aacStereo,
+      maxAudioChannels: _prefs.resolveMaxAudioChannels(),
       maxResolution: maxResolution,
       pgsDirectPlay: _prefs.get(UserPreferences.pgsDirectPlay) && canRenderBitmapSubtitles,
       assDirectPlay: _prefs.get(UserPreferences.assDirectPlay),
@@ -514,6 +543,17 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _applyAudioPassthroughOptions();
     await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
+
+    if (_player.platform is NativePlayer) {
+      final native = _player.platform as NativePlayer;
+      await _nativeSetProperty(native, 'sid', 'auto');
+      await _nativeSetProperty(native, 'secondary-sid', 'no');
+      await _nativeSetProperty(native, 'sub-visibility', 'yes');
+      if (_useLibass) {
+        await _nativeSetProperty(native, 'sub-ass', 'yes');
+      }
+    }
+
     final media = Media(url);
     final openPaused = startPosition > Duration.zero;
     await _player.open(media, play: !openPaused);
@@ -1196,6 +1236,35 @@ class MediaKitPlayerBackend implements PlayerBackend {
       } catch (_) {}
     }
   }
+
+  @override
+  int? get activeSubtitleTrackIndex {
+    if (_player.platform is! NativePlayer) {
+      return null;
+    }
+    try {
+      final active = _player.state.track.subtitle;
+      if (active.id == 'no') {
+        return -1;
+      }
+      if (active.id == 'auto') {
+        return null;
+      }
+      final subtitleTracks = _player.state.tracks.subtitle;
+      final playableSubtitleTracks = subtitleTracks
+          .where((t) => t.id != 'auto' && t.id != 'no')
+          .toList();
+      final idx = playableSubtitleTracks.indexWhere((t) => t.id == active.id);
+      if (idx >= 0) {
+        return idx + 1;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
+  Future<int?> getActiveSubtitleTrackIndexAsync() async => activeSubtitleTrackIndex;
+
 
   @override
   Future<void> setSubtitleTrack(

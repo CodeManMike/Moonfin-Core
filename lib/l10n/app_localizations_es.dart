@@ -28,7 +28,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String connectingToServer(String serverName) {
-    return 'Conectándose a $serverName';
+    return 'Conectando a $serverName';
   }
 
   @override
@@ -70,7 +70,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get whosWatching => '¿Quién está viendo?';
+  String get whosWatching => '¿Quién es?';
 
   @override
   String get addUser => 'Añadir usuario';
@@ -80,14 +80,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String appVersionFooter(String version) {
-    return 'Versión Moonfin $version';
+    return 'Versión de Moonfin: $version';
   }
 
   @override
   String get savedServers => 'Servidores guardados';
 
   @override
-  String get discoveredServers => 'Servidores descubiertos';
+  String get discoveredServers => 'Servidores encontrados';
 
   @override
   String get noneFound => 'Ninguno encontrado';
@@ -99,7 +99,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addServer => 'Añadir servidor';
 
   @override
-  String get embyConnect => 'Emby Conectar';
+  String get embyConnect => 'Conectar Emby';
 
   @override
   String get removeServer => 'Eliminar servidor';
@@ -156,7 +156,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get themeMoonfinSubtitle =>
-      'Aspecto actual de Moonfin que a todos les encanta';
+      'El aspecto actual de Moonfin que gusta a todos';
 
   @override
   String get themeNeonPulse => 'Pulso de neón';
@@ -245,7 +245,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get schedule => 'Programación';
 
   @override
-  String get series => 'Serie';
+  String get series => 'Series';
 
   @override
   String get noItemsFound => 'No se encontraron elementos';
@@ -494,7 +494,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bookHighlightsDescription =>
-      'Tus libros con destacados, favoritos o progreso de lectura.';
+      'Tus libros destacados, favoritos o con progreso de lectura.';
 
   @override
   String get handPickedFromLibrary => 'Seleccionados de tu biblioteca.';
@@ -505,7 +505,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get booksWithHighlights =>
-      'Libros con destacados, favoritos o progreso de lectura.';
+      'Libros destacados, favoritos o con progreso de lectura.';
 
   @override
   String get jumpBackNarration =>
@@ -2240,19 +2240,76 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsAudioOutputMode => 'Modo de salida de audio';
 
   @override
+  String get settingsAudioOutputModeDescription =>
+      'Choose how audio is decoded. AVR Passthrough sends raw Dolby/DTS streams to your receiver; Auto or Downmix decodes locally.';
+
+  @override
   String get settingsAudioOutputModeAvrPassthrough => 'Paso AVR';
 
   @override
   String get settingsAudioFallbackCodec => 'Códec de reserva de audio';
 
   @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
+  String get settingsAudioFallbackCodecDescription =>
+      'Select the target format to transcode multi-channel audio when the source stream cannot be direct-played or passed through.';
 
   @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
+  String get settingsAudioFallbackCodecAuto => 'Auto Detect\n(Recommended)';
 
   @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
+  String get settingsAudioFallbackCodecAac => 'AAC\n(Default)';
+
+  @override
+  String get settingsAudioFallbackCodecAc3 => 'AC3\n(Dolby Digital)';
+
+  @override
+  String get settingsAudioFallbackCodecEac3 => 'EAC3\n(Dolby Digital Plus)';
+
+  @override
+  String get settingsAudioFallbackCodecTrueHd => 'TrueHD\n(Lossless)';
+
+  @override
+  String get settingsAudioFallbackCodecMp3 => 'MP3\n(Stereo Only)';
+
+  @override
+  String get settingsAudioFallbackCodecOpus => 'Opus\n(Efficient)';
+
+  @override
+  String get settingsAudioFallbackCodecFlac => 'FLAC\n(Lossless)';
+
+  @override
+  String get settingsMaxAudioChannels => 'Max Audio Channels';
+
+  @override
+  String get settingsMaxAudioChannelsDescription =>
+      'Configure the maximum channels of your audio setup. Multichannel streams exceeding this limit will downmix or transcode.';
+
+  @override
+  String get settingsMaxAudioChannelsAuto => 'Auto Detect\n(Hardware Default)';
+
+  @override
+  String get settingsMaxAudioChannelsMono => '1.0 Mono';
+
+  @override
+  String get settingsMaxAudioChannelsStereo => '2.0 Stereo';
+
+  @override
+  String get settingsMaxAudioChannels3_0 => '3.0 / 2.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels4_0 => '4.0 / 3.1 Quadraphonic';
+
+  @override
+  String get settingsMaxAudioChannels5_0 => '5.0 / 4.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels5_1 => '5.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels6_1 => '6.1 Surround';
+
+  @override
+  String get settingsMaxAudioChannels7_1 => '7.1 Surround';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Paso a través (avanzado)';
@@ -3577,7 +3634,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get originalLanguageLabel => 'Idioma original';
 
   @override
-  String get seasonsLabel => 'Temporadas';
+  String get seasonsLabel => 'Estaciones';
 
   @override
   String get episodesLabel => 'Episodios';
@@ -8431,7 +8488,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   }
 
   @override
-  String get continuing => 'En emisión';
+  String get continuing => 'Continuo';
 
   @override
   String get ended => 'Terminado';
@@ -8858,7 +8915,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get nextUp => 'Siguiente';
 
   @override
-  String get seasons => 'Temporadas';
+  String get seasons => 'Estaciones';
 
   @override
   String get chapters => 'Capítulos';
@@ -8952,7 +9009,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   }
 
   @override
-  String get play => 'Reproducir';
+  String get play => 'Jugar';
 
   @override
   String get startOver => 'Empezar de nuevo';
@@ -8964,7 +9021,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get readOffline => 'Leer sin conexión';
 
   @override
-  String get playOffline => 'Reproducir sin conexión';
+  String get playOffline => 'Jugar sin conexión';
 
   @override
   String get audio => 'Audio';
@@ -8976,7 +9033,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get version => 'Versión';
 
   @override
-  String get cast => 'Transmitir';
+  String get cast => 'Elenco';
 
   @override
   String get trailer => 'Tráiler';
@@ -9249,7 +9306,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get readMore => 'Leer más';
 
   @override
-  String get shuffle => 'Aleatorio';
+  String get shuffle => 'Barajar';
 
   @override
   String downloadsCount(int count) {
@@ -10333,15 +10390,6 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get settingsAudioFallbackCodec => 'Códec de reserva de audio';
-
-  @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Paso a través (avanzado)';
@@ -11511,7 +11559,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get cancelRequest => 'Cancelar solicitud';
 
   @override
-  String get playInMoonfin => 'Reproducir en Moonfin';
+  String get playInMoonfin => 'Jugar en Moonfin';
 
   @override
   String requestedByName(String name) {
@@ -11545,7 +11593,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get itemNotFoundInLibrary =>
-      'Artículo no encontrado en tu biblioteca de Moonfin';
+      'Artículo no encontrado en tu biblioteca Moonfin';
 
   @override
   String get errorSearchingLibrary => 'Error al buscar biblioteca';
@@ -11574,7 +11622,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get submitRequest => 'Enviar solicitud';
 
   @override
-  String get allSeasons => 'Todas las temporadas';
+  String get allSeasons => 'Todas las estaciones';
 
   @override
   String get advancedOptions => 'Opciones avanzadas';
@@ -11655,7 +11703,7 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   String get originalLanguageLabel => 'Idioma original';
 
   @override
-  String get seasonsLabel => 'Temporadas';
+  String get seasonsLabel => 'Estaciones';
 
   @override
   String get episodesLabel => 'Episodios';
@@ -16222,7 +16270,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get savedServers => 'Servidores guardados';
 
   @override
-  String get discoveredServers => 'Servidores encontrados';
+  String get discoveredServers => 'Servidores descubiertos';
 
   @override
   String get noneFound => 'No se encontró ninguno';
@@ -16462,7 +16510,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   }
 
   @override
-  String get continuing => 'En emisión';
+  String get continuing => 'Continuo';
 
   @override
   String get ended => 'Terminado';
@@ -16889,7 +16937,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get nextUp => 'Siguiente';
 
   @override
-  String get seasons => 'Temporadas';
+  String get seasons => 'Estaciones';
 
   @override
   String get chapters => 'Capítulos';
@@ -16983,7 +17031,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   }
 
   @override
-  String get play => 'Reproducir';
+  String get play => 'Jugar';
 
   @override
   String get startOver => 'Empezar de nuevo';
@@ -16995,7 +17043,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get readOffline => 'Leer sin conexión';
 
   @override
-  String get playOffline => 'Reproducir sin conexión';
+  String get playOffline => 'Jugar sin conexión';
 
   @override
   String get audio => 'Audio';
@@ -17007,7 +17055,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get version => 'Versión';
 
   @override
-  String get cast => 'Transmitir';
+  String get cast => 'Elenco';
 
   @override
   String get trailer => 'Tráiler';
@@ -17280,7 +17328,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get readMore => 'Leer más';
 
   @override
-  String get shuffle => 'Aleatorio';
+  String get shuffle => 'Barajar';
 
   @override
   String downloadsCount(int count) {
@@ -18364,15 +18412,6 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get settingsAudioFallbackCodec => 'Códec de reserva de audio';
-
-  @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Paso a través (avanzado)';
@@ -19542,7 +19581,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get cancelRequest => 'Cancelar solicitud';
 
   @override
-  String get playInMoonfin => 'Reproducir en Moonfin';
+  String get playInMoonfin => 'Jugar en Moonfin';
 
   @override
   String requestedByName(String name) {
@@ -19576,7 +19615,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get itemNotFoundInLibrary =>
-      'Artículo no encontrado en tu biblioteca de Moonfin';
+      'Artículo no encontrado en tu biblioteca Moonfin';
 
   @override
   String get errorSearchingLibrary => 'Error al buscar biblioteca';
@@ -19605,7 +19644,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get submitRequest => 'Enviar solicitud';
 
   @override
-  String get allSeasons => 'Todas las temporadas';
+  String get allSeasons => 'Todas las estaciones';
 
   @override
   String get advancedOptions => 'Opciones avanzadas';
@@ -19686,7 +19725,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get originalLanguageLabel => 'Idioma original';
 
   @override
-  String get seasonsLabel => 'Temporadas';
+  String get seasonsLabel => 'Estaciones';
 
   @override
   String get episodesLabel => 'Episodios';
@@ -24253,7 +24292,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get savedServers => 'Servidores guardados';
 
   @override
-  String get discoveredServers => 'Servidores encontrados';
+  String get discoveredServers => 'Servidores descubiertos';
 
   @override
   String get noneFound => 'No se encontró ninguno';
@@ -24493,7 +24532,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   }
 
   @override
-  String get continuing => 'En emisión';
+  String get continuing => 'Continuo';
 
   @override
   String get ended => 'Terminado';
@@ -24920,7 +24959,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get nextUp => 'Siguiente';
 
   @override
-  String get seasons => 'Temporadas';
+  String get seasons => 'Estaciones';
 
   @override
   String get chapters => 'Capítulos';
@@ -25014,7 +25053,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   }
 
   @override
-  String get play => 'Reproducir';
+  String get play => 'Jugar';
 
   @override
   String get startOver => 'Empezar de nuevo';
@@ -25026,7 +25065,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get readOffline => 'Leer sin conexión';
 
   @override
-  String get playOffline => 'Reproducir sin conexión';
+  String get playOffline => 'Jugar sin conexión';
 
   @override
   String get audio => 'Audio';
@@ -25038,7 +25077,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get version => 'Versión';
 
   @override
-  String get cast => 'Transmitir';
+  String get cast => 'Elenco';
 
   @override
   String get trailer => 'Tráiler';
@@ -25311,7 +25350,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get readMore => 'Leer más';
 
   @override
-  String get shuffle => 'Aleatorio';
+  String get shuffle => 'Barajar';
 
   @override
   String downloadsCount(int count) {
@@ -26395,15 +26434,6 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
 
   @override
   String get settingsAudioFallbackCodec => 'Códec de reserva de audio';
-
-  @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Paso a través (avanzado)';
@@ -27573,7 +27603,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get cancelRequest => 'Cancelar solicitud';
 
   @override
-  String get playInMoonfin => 'Reproducir en Moonfin';
+  String get playInMoonfin => 'Jugar en Moonfin';
 
   @override
   String requestedByName(String name) {
@@ -27607,7 +27637,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
 
   @override
   String get itemNotFoundInLibrary =>
-      'Artículo no encontrado en tu biblioteca de Moonfin';
+      'Artículo no encontrado en tu biblioteca Moonfin';
 
   @override
   String get errorSearchingLibrary => 'Error al buscar biblioteca';
@@ -27636,7 +27666,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get submitRequest => 'Enviar solicitud';
 
   @override
-  String get allSeasons => 'Todas las temporadas';
+  String get allSeasons => 'Todas las estaciones';
 
   @override
   String get advancedOptions => 'Opciones avanzadas';
@@ -27717,7 +27747,7 @@ class AppLocalizationsEsDo extends AppLocalizationsEs {
   String get originalLanguageLabel => 'Idioma original';
 
   @override
-  String get seasonsLabel => 'Temporadas';
+  String get seasonsLabel => 'Estaciones';
 
   @override
   String get episodesLabel => 'Episodios';
@@ -32284,7 +32314,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get savedServers => 'Servidores guardados';
 
   @override
-  String get discoveredServers => 'Servidores encontrados';
+  String get discoveredServers => 'Servidores descubiertos';
 
   @override
   String get noneFound => 'No se encontró ninguno';
@@ -32524,7 +32554,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get continuing => 'En emisión';
+  String get continuing => 'Continuo';
 
   @override
   String get ended => 'Terminado';
@@ -32951,7 +32981,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get nextUp => 'Siguiente';
 
   @override
-  String get seasons => 'Temporadas';
+  String get seasons => 'Estaciones';
 
   @override
   String get chapters => 'Capítulos';
@@ -33045,7 +33075,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get play => 'Reproducir';
+  String get play => 'Jugar';
 
   @override
   String get startOver => 'Empezar de nuevo';
@@ -33057,7 +33087,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get readOffline => 'Leer sin conexión';
 
   @override
-  String get playOffline => 'Reproducir sin conexión';
+  String get playOffline => 'Jugar sin conexión';
 
   @override
   String get audio => 'Audio';
@@ -33069,7 +33099,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get version => 'Versión';
 
   @override
-  String get cast => 'Transmitir';
+  String get cast => 'Elenco';
 
   @override
   String get trailer => 'Tráiler';
@@ -33342,7 +33372,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get readMore => 'Leer más';
 
   @override
-  String get shuffle => 'Aleatorio';
+  String get shuffle => 'Barajar';
 
   @override
   String downloadsCount(int count) {
@@ -34426,15 +34456,6 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get settingsAudioFallbackCodec => 'Códec de reserva de audio';
-
-  @override
-  String get settingsAudioFallbackAacStereo => 'Estéreo AAC';
-
-  @override
-  String get settingsAudioFallbackAc35_1 => 'AC3 5.1';
-
-  @override
-  String get settingsAudioFallbackEac35_1 => 'EAC3 5.1';
 
   @override
   String get settingsAudioPassthroughAdvanced => 'Paso a través (avanzado)';
@@ -35604,7 +35625,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get cancelRequest => 'Cancelar solicitud';
 
   @override
-  String get playInMoonfin => 'Reproducir en Moonfin';
+  String get playInMoonfin => 'Jugar en Moonfin';
 
   @override
   String requestedByName(String name) {
@@ -35638,7 +35659,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get itemNotFoundInLibrary =>
-      'Artículo no encontrado en tu biblioteca de Moonfin';
+      'Artículo no encontrado en tu biblioteca Moonfin';
 
   @override
   String get errorSearchingLibrary => 'Error al buscar biblioteca';
@@ -35667,7 +35688,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get submitRequest => 'Enviar solicitud';
 
   @override
-  String get allSeasons => 'Todas las temporadas';
+  String get allSeasons => 'Todas las estaciones';
 
   @override
   String get advancedOptions => 'Opciones avanzadas';
@@ -35748,7 +35769,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get originalLanguageLabel => 'Idioma original';
 
   @override
-  String get seasonsLabel => 'Temporadas';
+  String get seasonsLabel => 'Estaciones';
 
   @override
   String get episodesLabel => 'Episodios';

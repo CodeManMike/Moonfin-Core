@@ -3195,7 +3195,9 @@ class _ContentRowsState extends State<_ContentRows>
             itemType: item.type,
             seerrMediaType: item.seerrMediaType,
             seerrStatus: item.seerrStatus,
-            focusColor: focusColor,
+            focusColor: (row.rowType == HomeRowType.genres && row.id == 'genres')
+                ? ThemeRegistry.active.borders.focusBorder.color
+                : focusColor,
             cardFocusExpansion: isRowsV2 ? false : cardExpansion && !showPreviewVideo,
             externalIsFocused: effectiveV2Focused,
             suppressImageFocusBorder: showPreviewVideo,
@@ -3619,14 +3621,16 @@ class _ContentRowsState extends State<_ContentRows>
         tag: item.backdropImageTags.first,
       );
     }
-    final parentId = item.parentBackdropItemId;
-    final parentTags = item.parentBackdropImageTags;
-    if (parentId != null && parentTags.isNotEmpty) {
-      return imageApi.getBackdropImageUrl(
-        parentId,
-        maxWidth: maxW,
-        tag: parentTags.first,
-      );
+    if (item.type != 'Video' && item.type != 'MusicVideo') {
+      final parentId = item.parentBackdropItemId;
+      final parentTags = item.parentBackdropImageTags;
+      if (parentId != null && parentTags.isNotEmpty) {
+        return imageApi.getBackdropImageUrl(
+          parentId,
+          maxWidth: maxW,
+          tag: parentTags.first,
+        );
+      }
     }
     return _resolvePrimaryImageUrl(item, imageApi, maxWidth: maxW);
   }
@@ -3846,16 +3850,16 @@ class _ContentRowsState extends State<_ContentRows>
     if (imageType == ImageType.thumb) {
       final maxW = (height * 16 / 9 * requestScale).toInt();
       final maxH = (height * requestScale).toInt();
-      if (!useSeriesThumbs) {
-        if (item.type == 'Episode') {
-          final episodePrimary = _resolvePrimaryImageUrl(
+      if (!useSeriesThumbs || item.type == 'Video' || item.type == 'MusicVideo') {
+        if (item.type == 'Episode' || item.type == 'Video' || item.type == 'MusicVideo') {
+          final videoPrimary = _resolvePrimaryImageUrl(
             item,
             imageApi,
             maxHeight: maxH,
             maxWidth: maxW,
           );
-          if (episodePrimary != null) {
-            return episodePrimary;
+          if (videoPrimary != null) {
+            return videoPrimary;
           }
         } else if (item.type == 'Series') {
           final latestEpId = item.rawData['LatestEpisodeId'] as String?;

@@ -106,7 +106,19 @@ class _LeftSidebarState extends State<LeftSidebar> {
     _focusAvatarCallback = () {
       if (!mounted) return;
       if (PlatformDetection.isTV) {
-        _profileFocusNode.requestFocus();
+        if (_profileFocusNode.context != null) {
+          _profileFocusNode.requestFocus();
+        } else {
+          _expand();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            if (_profileFocusNode.context != null) {
+              _profileFocusNode.requestFocus();
+            } else {
+              _homeFocusNode.requestFocus();
+            }
+          });
+        }
       } else if ((PlatformDetection.isDesktop || (PlatformDetection.isWeb && !PlatformDetection.useMobileUi))) {
         _homeFocusNode.requestFocus();
       }
@@ -351,7 +363,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
       if (PlatformDetection.isTV &&
           event.logicalKey == LogicalKeyboardKey.arrowUp &&
           _homeFocusNode.hasFocus) {
-        _profileFocusNode.requestFocus();
+        if (_profileFocusNode.context != null) {
+          _profileFocusNode.requestFocus();
+        }
         return KeyEventResult.handled;
       }
     }
@@ -710,6 +724,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
             builder: (context, constraints) {
               final items = <Widget>[
                 _SidebarItem(
+                  key: const ValueKey('sidebar-home'),
                   icon: Icons.home_rounded,
                   label: l10n.home,
                   baseColor: nextSidebarColor(),
@@ -728,6 +743,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   },
                 ),
                 _SidebarItem(
+                  key: const ValueKey('sidebar-search'),
                   icon: Icons.search_rounded,
                   label: l10n.search,
                   baseColor: nextSidebarColor(),
@@ -744,6 +760,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 ),
                 if (showShuffle)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-shuffle'),
                     icon: Icons.shuffle_rounded,
                     label: l10n.shuffle,
                     baseColor: nextSidebarColor(),
@@ -755,6 +772,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showGenres)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-genres'),
                     baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => Image.asset(
                       'assets/icons/genres.png',
@@ -776,6 +794,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showFavorites)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-favorites'),
                     icon: Icons.favorite_rounded,
                     label: l10n.favorites,
                     baseColor: nextSidebarColor(),
@@ -792,6 +811,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showFolders)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-folders'),
                     icon: Icons.folder_rounded,
                     label: l10n.folders,
                     baseColor: nextSidebarColor(),
@@ -808,6 +828,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showSyncPlay)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-syncplay'),
                     icon: Icons.groups_rounded,
                     label: l10n.syncPlay,
                     baseColor: nextSidebarColor(),
@@ -822,8 +843,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
                       );
                     },
                   ),
-                if (_prefs.get(UserPreferences.showSeerrButton))
+                if (_prefs.get(UserPreferences.showSeerrButton) &&
+                    GetIt.instance<PluginSyncService>().seerrAvailable)
                   _SidebarItem(
+                    key: const ValueKey('sidebar-seerr'),
                     baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => seerrPrefs.isSeerrVariant
                         ? SeerrIcon(size: size, color: color)
@@ -842,6 +865,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 if (showLibraries && _libraries.isNotEmpty) ...[
                   _SidebarItem(
+                    key: const ValueKey('sidebar-libraries'),
                     baseColor: nextSidebarColor(),
                     iconBuilder: (size, color) => Image.asset(
                       'assets/icons/clapperboard.png',
@@ -872,6 +896,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                     ),
                   ),
                   AnimatedSize(
+                    key: const ValueKey('sidebar-libraries-children'),
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeInOut,
                     child: _librariesExpanded
@@ -909,6 +934,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   ),
                 ],
                 _SidebarItem(
+                  key: const ValueKey('sidebar-settings'),
                   icon: Icons.settings_rounded,
                   label: l10n.settings,
                   baseColor: nextSidebarColor(),
@@ -1103,6 +1129,7 @@ class _SidebarItem extends StatefulWidget {
   final Color? baseColor;
 
   const _SidebarItem({
+    super.key,
     this.icon,
     this.iconBuilder,
     required this.label,
@@ -1119,31 +1146,41 @@ class _SidebarItem extends StatefulWidget {
 
 class _SidebarItemState extends State<_SidebarItem> {
   final _prefs = GetIt.instance<UserPreferences>();
-  late final FocusNode _focusNode;
+  FocusNode? _internalNode;
   late final VoidCallback _focusListener;
   bool _isFocused = false;
   bool _isHovered = false;
+
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_internalNode ??= FocusNode());
 
   bool get _tvCompact => PlatformDetection.isTV && !widget.showLabel;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = widget.focusNode ?? FocusNode();
-    _isFocused = _focusNode.hasFocus;
     _focusListener = () {
       if (!mounted) return;
       setState(() => _isFocused = _focusNode.hasFocus);
     };
     _focusNode.addListener(_focusListener);
+    _isFocused = _focusNode.hasFocus;
+  }
+
+  @override
+  void didUpdateWidget(_SidebarItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      (oldWidget.focusNode ?? _internalNode)?.removeListener(_focusListener);
+      _focusNode.addListener(_focusListener);
+      _isFocused = _focusNode.hasFocus;
+    }
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_focusListener);
-    if (widget.focusNode == null) {
-      _focusNode.dispose();
-    }
+    (widget.focusNode ?? _internalNode)?.removeListener(_focusListener);
+    _internalNode?.dispose();
     super.dispose();
   }
 

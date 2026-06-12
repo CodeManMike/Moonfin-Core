@@ -3373,7 +3373,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                           child: Center(child: _buildCenterTransportControls()),
                         ),
                     ],
-                    _buildCastMiniBar(),
                     _buildBufferingIndicator(),
                     _buildVolumeOverlay(),
                     if (PlatformDetection.useMobileUi)
@@ -4025,71 +4024,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
 
     return imageApi.getPrimaryImageUrl(itemId, maxHeight: 420);
-  }
-
-  Widget _buildCastMiniBar() {
-    return ValueListenableBuilder<CastTargetKind?>(
-      valueListenable: _castService.activeKindNotifier,
-      builder: (context, kind, _) {
-        if (kind == null) return const SizedBox.shrink();
-
-        final l10n = AppLocalizations.of(context);
-        final label = switch (kind) {
-          CastTargetKind.googleCast => l10n.castingToGoogleCast,
-          CastTargetKind.airPlay => l10n.castingViaAirPlay,
-          CastTargetKind.dlna => l10n.castingViaDlna,
-          CastTargetKind.jellyfinSession => l10n.remotePlayback,
-        };
-
-        final stateLabel = _remotePlaybackState == null
-            ? ''
-            : ' · ${_remotePlaybackState![0].toUpperCase()}${_remotePlaybackState!.substring(1)}';
-        final positionLabel = _remotePositionTicks > 0
-            ? ' · ${_formatDuration(Duration(microseconds: _remotePositionTicks ~/ 10))}'
-            : '';
-
-        return Positioned(
-          top: MediaQuery.of(context).padding.top + 8,
-          right: 12,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showCastControls,
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B5E20).withValues(alpha: 0.94),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.cast_connected,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$stateLabel$positionLabel',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: AppTypography.fontSizeXs,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildBottomOverlay(BuildContext context) {
@@ -5902,88 +5836,90 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final canDownloadRemote =
         !audio && item is AggregatedItem && _canDownloadRemoteSubtitles(item);
 
-    final int? currentStreamIndex;
-    if (audio) {
-      currentStreamIndex =
-          _manager.audioStreamIndex ??
-          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
-              as int?;
-    } else {
-      final subIdx = _manager.subtitleStreamIndex;
-      currentStreamIndex =
-          subIdx ??
-          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
-              as int?;
-    }
-    final isSubsOff = !audio && _manager.subtitleStreamIndex == -1;
-
-    final options = <TrackOption>[
-      if (!audio) TrackOption(label: l10n.off),
-      ...optionStreams.asMap().entries.map((entry) {
-        final index = entry.key;
-        final trackNumber = index + 1;
-        final s = entry.value;
-        final displayTitle = s['DisplayTitle'] as String?;
-        final title = s['Title'] as String?;
-        final language = s['Language'] as String?;
-        final codec = s['Codec'] as String?;
-        final label =
-            displayTitle ??
-            title ??
-            language ??
-            l10n.streamTypeFallback(streamType, index + 1);
-        final subtitle = audio
-            ? [
-                if (language != null && displayTitle != null) language,
-                if (codec != null) codec.toUpperCase(),
-                if (s['Channels'] != null) '${s['Channels']}ch',
-              ].join(' · ')
-            : (() {
-                final subtitleType =
-                    ((codec == null || codec.isEmpty) ? 'Unknown' : codec)
-                        .toUpperCase();
-                final deliveryMethod = (s['DeliveryMethod'] as String?)
-                    ?.trim()
-                    .toLowerCase();
-                final location = s['IsExternal'] == true
-                    ? 'External'
-                    : (deliveryMethod == 'embed' ? 'Embedded' : 'Internal');
-                return '$subtitleType · $location';
-              })();
-        return TrackOption(
-          label: '$trackNumber - $label',
-          subtitle: subtitle.isNotEmpty ? subtitle : null,
-          scrollLabel: true,
-          scrollSubtitle: true,
-        );
-      }),
-      if (canDownloadRemote)
-        TrackOption(
-          label: l10n.downloadSubtitlesLabel,
-          subtitle: l10n.searchOpenSubtitlesPlugin,
-        ),
-    ];
-
-    final int? selectedIndex;
-    if (audio) {
-      final idx = currentStreamIndex != null
-          ? streams.indexWhere((s) => s['Index'] == currentStreamIndex)
-          : -1;
-      selectedIndex = idx >= 0 ? idx : null;
-    } else {
-      if (isSubsOff || (currentStreamIndex == null && streams.isNotEmpty)) {
-        selectedIndex = 0;
-      } else if (currentStreamIndex != null) {
-        final idx = optionStreams.indexWhere(
-          (s) => s['Index'] == currentStreamIndex,
-        );
-        selectedIndex = idx >= 0 ? idx + 1 : null;
-      } else {
-        selectedIndex = null;
-      }
-    }
-
     unawaited(() async {
+      final int? currentStreamIndex;
+      if (audio) {
+        currentStreamIndex =
+            _manager.audioStreamIndex ??
+            streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
+                as int?;
+      } else {
+        final subIdx = await _manager.getSubtitleStreamIndexAsync();
+        currentStreamIndex =
+            subIdx ??
+            streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
+                as int?;
+      }
+      final isSubsOff = !audio && currentStreamIndex == -1;
+
+      final options = <TrackOption>[
+        if (!audio) TrackOption(label: l10n.off),
+        ...optionStreams.asMap().entries.map((entry) {
+          final index = entry.key;
+          final trackNumber = index + 1;
+          final s = entry.value;
+          final displayTitle = s['DisplayTitle'] as String?;
+          final title = s['Title'] as String?;
+          final language = s['Language'] as String?;
+          final codec = s['Codec'] as String?;
+          final label =
+              displayTitle ??
+              title ??
+              language ??
+              l10n.streamTypeFallback(streamType, index + 1);
+          final subtitle = audio
+              ? [
+                  if (language != null && displayTitle != null) language,
+                  if (codec != null) codec.toUpperCase(),
+                  if (s['Channels'] != null) '${s['Channels']}ch',
+                ].join(' · ')
+              : (() {
+                  final subtitleType =
+                      ((codec == null || codec.isEmpty) ? 'Unknown' : codec)
+                          .toUpperCase();
+                  final deliveryMethod = (s['DeliveryMethod'] as String?)
+                      ?.trim()
+                      .toLowerCase();
+                  final location = s['IsExternal'] == true
+                      ? 'External'
+                      : (deliveryMethod == 'embed' ? 'Embedded' : 'Internal');
+                  return '$subtitleType · $location';
+                })();
+          return TrackOption(
+            label: '$trackNumber - $label',
+            subtitle: subtitle.isNotEmpty ? subtitle : null,
+            scrollLabel: true,
+            scrollSubtitle: true,
+          );
+        }),
+        if (canDownloadRemote)
+          TrackOption(
+            label: l10n.downloadSubtitlesLabel,
+            subtitle: l10n.searchOpenSubtitlesPlugin,
+          ),
+      ];
+
+      final int? selectedIndex;
+      if (audio) {
+        final idx = currentStreamIndex != null
+            ? streams.indexWhere((s) => s['Index'] == currentStreamIndex)
+            : -1;
+        selectedIndex = idx >= 0 ? idx : null;
+      } else {
+        if (isSubsOff || (currentStreamIndex == null && streams.isNotEmpty)) {
+          selectedIndex = 0;
+        } else if (currentStreamIndex != null) {
+          final idx = optionStreams.indexWhere(
+            (s) => s['Index'] == currentStreamIndex,
+          );
+          selectedIndex = idx >= 0 ? idx + 1 : null;
+        } else {
+          selectedIndex = null;
+        }
+      }
+
+      if (!mounted) return;
+
       final result = await TrackSelectorDialog.show(
         context,
         title: audio ? l10n.audioTrack : l10n.subtitleTrack,

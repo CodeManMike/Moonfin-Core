@@ -7,7 +7,11 @@ import '../../util/focus/key_event_utils.dart';
 import 'navigation_layout.dart';
 import 'overlay_sheet.dart';
 
+bool _exitDialogVisible = false;
+
 Future<void> showExitConfirmationDialog(BuildContext context) async {
+  if (_exitDialogVisible) return;
+  _exitDialogVisible = true;
   final l10n = AppLocalizations.of(context);
   final cancelFocus = FocusNode(debugLabel: 'ExitDialogCancel');
   try {
@@ -43,6 +47,7 @@ Future<void> showExitConfirmationDialog(BuildContext context) async {
       });
     }
   } finally {
+    _exitDialogVisible = false;
     cancelFocus.dispose();
   }
 }

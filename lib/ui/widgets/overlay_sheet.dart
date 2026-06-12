@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 
 import '../../util/focus/dpad_keys.dart';
+import '../../util/platform_detection.dart';
 import 'focus/focus_theme.dart';
 
 // Tracks dialogs closed by the back key. Android also sends a popRoute
@@ -160,6 +161,16 @@ Future<T?> showFocusRestoringModalBottomSheet<T>({
 }
 
 class OverlaySheetController {
+  static final List<VoidCallback> _openSheetCloseHandles = <VoidCallback>[];
+
+  static bool get hasOpenSheet => _openSheetCloseHandles.isNotEmpty;
+
+  static bool closeTopSheet() {
+    if (_openSheetCloseHandles.isEmpty) return false;
+    _openSheetCloseHandles.last();
+    return true;
+  }
+
   static Future<T?> show<T>(
     BuildContext context, {
     required WidgetBuilder builder,
@@ -245,10 +256,13 @@ class _OverlaySheetState<T> extends State<_OverlaySheet<T>>
   bool _closing = false;
   bool _restoreFocusOnClose = true;
   Future<void>? _closeFuture;
+  late final VoidCallback _registryCloseHandle;
 
   @override
   void initState() {
     super.initState();
+    _registryCloseHandle = () => _close();
+    OverlaySheetController._openSheetCloseHandles.add(_registryCloseHandle);
     _controller = AnimationController(
       vsync: this,
       duration: widget.animationDuration,
@@ -274,6 +288,7 @@ class _OverlaySheetState<T> extends State<_OverlaySheet<T>>
 
   @override
   void dispose() {
+    OverlaySheetController._openSheetCloseHandles.remove(_registryCloseHandle);
     _controller.dispose();
     _scopeNode.dispose();
     super.dispose();
@@ -295,6 +310,9 @@ class _OverlaySheetState<T> extends State<_OverlaySheet<T>>
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event.logicalKey.isBackKey) {
       if (event is KeyDownEvent) {
+        if (PlatformDetection.isAndroid) {
+          DialogBackSuppressor.markDismissed();
+        }
         _close();
         return KeyEventResult.handled;
       }

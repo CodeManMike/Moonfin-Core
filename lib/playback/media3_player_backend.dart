@@ -10,7 +10,7 @@ import 'audio_capability_profile.dart';
 import 'device_profile_builder.dart';
 import 'known_defects.dart';
 
-class Media3PlayerBackend implements PlayerBackend {
+class Media3PlayerBackend extends PlayerBackend {
   static const _discontinuityWindowMs = 15000;
   static const _discontinuityThreshold = 3;
 
@@ -446,10 +446,7 @@ class Media3PlayerBackend implements PlayerBackend {
       trueHdPassthroughEnabled: _prefs.resolveTrueHdPassthroughEnabled(),
       trueHdAtmosPassthroughEnabled: _prefs
           .resolveTrueHdAtmosPassthroughEnabled(),
-      downMixAudio:
-          _prefs.resolveAudioOutputMode() == AudioOutputMode.forceStereo,
-      audioFallbackToStereoAac:
-          _prefs.resolveAudioFallbackCodec() == AudioFallbackCodec.aacStereo,
+      maxAudioChannels: _prefs.resolveMaxAudioChannels(),
       maxResolution: maxResolution,
       pgsDirectPlay: _prefs.get(UserPreferences.pgsDirectPlay) && canRenderBitmapSubtitles,
       assDirectPlay: _prefs.get(UserPreferences.assDirectPlay),
@@ -545,6 +542,7 @@ class Media3PlayerBackend implements PlayerBackend {
   Future<void> setAudioTrack(int index) async {
     await _invoke<void>('setAudioTrack', {'index': index});
   }
+
 
   @override
   Future<void> setSubtitleTrack(

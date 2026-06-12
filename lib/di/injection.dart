@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart' as pkg;
 import 'package:server_core/server_core.dart';
@@ -261,7 +262,7 @@ Future<void> _migrateAndroidMobileAudioDefaults(
 }
 
 Future<void> migrateAudioPreferenceSplit(PreferenceStore store) async {
-  const migrationKey = 'pref_audio_preference_split_v2';
+  const migrationKey = 'pref_audio_preference_split_v3';
 
   if (store.getBool(migrationKey) == true) {
     return;
@@ -327,13 +328,26 @@ Future<void> migrateAudioPreferenceSplit(PreferenceStore store) async {
     await setEnumIfMissing(
       UserPreferences.audioFallbackCodec,
       legacyStereoAacFallback
-          ? AudioFallbackCodec.aacStereo
+          ? AudioFallbackCodec.aac
           : AudioFallbackCodec.auto,
     );
   }
 
   if (store.containsKey(_legacyAc3EnabledKey)) {
     await setBoolIfMissing(UserPreferences.eac3JocPassthroughEnabled, false);
+  }
+
+  final savedFallbackCodec = store.getString(UserPreferences.audioFallbackCodec.key);
+  if (savedFallbackCodec != null) {
+    final remappedName = switch (savedFallbackCodec) {
+      'aacStereo' => 'aac',
+      'ac3_5_1' => 'ac3',
+      'eac3_5_1' => 'eac3',
+      _ => null,
+    };
+    if (remappedName != null) {
+      await store.setString(UserPreferences.audioFallbackCodec.key, remappedName);
+    }
   }
 
   await store.setBool(migrationKey, true);
@@ -375,9 +389,9 @@ Future<void> configureDependencies() async {
   final storagePath = StoragePathService();
   getIt.registerSingleton<StoragePathService>(storagePath);
   getIt.registerSingleton<OfflineDatabase>(OfflineDatabase(openConnection()));
-  getIt.registerSingleton<OfflineRepository>(
-    OfflineRepository(getIt<OfflineDatabase>()),
-  );
+  final offlineRepo = OfflineRepository(getIt<OfflineDatabase>());
+  getIt.registerSingleton<OfflineRepository>(offlineRepo);
+  await _migrateIosPaths(offlineRepo);
 
   final connectivityService = ConnectivityService();
   connectivityService.initialize();
@@ -396,4 +410,48 @@ Future<void> configureDependencies() async {
       getIt<DeviceInfo>(),
     ),
   );
+}
+
+String? migrateIosPath(String? storedPath, String currentDocsPath) {
+  if (storedPath == null) return null;
+  final docsIndex = storedPath.indexOf('/Documents/');
+  if (docsIndex == -1) return storedPath;
+  final relativePath = storedPath.substring(docsIndex + '/Documents/'.length);
+  return '$currentDocsPath/$relativePath';
+}
+
+Future<void> _migrateIosPaths(OfflineRepository repo) async {
+  if (!PlatformDetection.isIOS) return;
+
+  try {
+    final docs = await getApplicationDocumentsDirectory();
+    final currentDocsPath = docs.path;
+
+    final items = await repo.getItems();
+    for (final item in items) {
+      final newLocalFilePath = migrateIosPath(item.localFilePath, currentDocsPath);
+      final newPosterPath = migrateIosPath(item.posterPath, currentDocsPath);
+      final newBackdropPath = migrateIosPath(item.backdropPath, currentDocsPath);
+      final newLogoPath = migrateIosPath(item.logoPath, currentDocsPath);
+      final newThumbPath = migrateIosPath(item.thumbPath, currentDocsPath);
+
+      if (newLocalFilePath != item.localFilePath ||
+          newPosterPath != item.posterPath ||
+          newBackdropPath != item.backdropPath ||
+          newLogoPath != item.logoPath ||
+          newThumbPath != item.thumbPath) {
+        await repo.updateItemPaths(
+          itemId: item.itemId,
+          serverId: item.serverId,
+          localFilePath: newLocalFilePath,
+          posterPath: newPosterPath,
+          backdropPath: newBackdropPath,
+          logoPath: newLogoPath,
+          thumbPath: newThumbPath,
+        );
+      }
+    }
+  } catch (_) {
+    // Fail-silent to not block startup if anything goes wrong
+  }
 }
