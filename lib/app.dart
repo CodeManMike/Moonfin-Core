@@ -947,7 +947,8 @@ class _TvUiScale extends StatelessWidget {
 
   final Widget child;
 
-  static const double _designWidth = 1440;
+  static const double _targetScale = 1.45;
+  static const double _designWidth = 1920 / _targetScale;
 
   @override
   Widget build(BuildContext context) {
