@@ -323,6 +323,10 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
       return false;
     }
 
+    if (OverlaySheetController.closeTopSheet()) {
+      return true;
+    }
+
     final navigatorState = appRouter.routerDelegate.navigatorKey.currentState;
     if (navigatorState != null && _hasPagelessRouteOnTop(navigatorState)) {
       unawaited(navigatorState.maybePop());
@@ -398,6 +402,7 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
   @override
   Future<bool> didPopRoute() async {
     if (DialogBackSuppressor.consume()) return true;
+    if (OverlaySheetController.closeTopSheet()) return true;
     if (_isPlayerRoute()) return false;
     final navigatorState = appRouter.routerDelegate.navigatorKey.currentState;
     if (navigatorState == null) return false;
@@ -444,10 +449,13 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope>
 
     final isBackspace = key == LogicalKeyboardKey.backspace;
     if (key.isBackKey || isBackspace) {
-      if (_isPlayerRoute()) {
+      if (isBackspace && _isEditingText()) {
         return false;
       }
-      if (isBackspace && _isEditingText()) {
+      if (OverlaySheetController.closeTopSheet()) {
+        return true;
+      }
+      if (_isPlayerRoute()) {
         return false;
       }
       if (appRouter.canPop()) {
