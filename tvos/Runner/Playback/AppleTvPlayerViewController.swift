@@ -43,6 +43,13 @@ final class AppleTvPlayerViewController: UIViewController {
 
     private var pauseMeta: (overview: String, imageUrl: String)?
 
+    private var mediaSegments: [(startMs: Int, endMs: Int, action: String, label: String)] = []
+    private var mediaSegmentsSignature = ""
+    private var skippedSegmentKeys: Set<String> = []
+    private var activeSkipSegmentKey: String?
+    private let skipSegmentButton = UIView()
+    private let skipSegmentLabel = UILabel()
+
     private var isLive = false
     private var liveProgram:
         (name: String, episodeTitle: String, startMs: Int, endMs: Int, hasTimer: Bool)?
@@ -297,6 +304,37 @@ final class AppleTvPlayerViewController: UIViewController {
         setupNextUpCard()
         setupPauseOverlay()
         setupLiveOverlays()
+        setupSkipSegment()
+    }
+
+    private func setupSkipSegment() {
+        skipSegmentButton.translatesAutoresizingMaskIntoConstraints = false
+        skipSegmentButton.backgroundColor = .white
+        skipSegmentButton.layer.cornerRadius = 10
+        skipSegmentButton.layer.borderWidth = 2
+        skipSegmentButton.layer.borderColor = UIColor.white.cgColor
+        skipSegmentButton.isHidden = true
+        view.addSubview(skipSegmentButton)
+
+        skipSegmentLabel.translatesAutoresizingMaskIntoConstraints = false
+        skipSegmentLabel.font = .systemFont(ofSize: 28, weight: .semibold)
+        skipSegmentLabel.textColor = .black
+        skipSegmentButton.addSubview(skipSegmentLabel)
+
+        NSLayoutConstraint.activate([
+            skipSegmentButton.trailingAnchor.constraint(
+                equalTo: view.trailingAnchor, constant: -90),
+            skipSegmentButton.bottomAnchor.constraint(
+                equalTo: view.bottomAnchor, constant: -120),
+            skipSegmentLabel.topAnchor.constraint(
+                equalTo: skipSegmentButton.topAnchor, constant: 14),
+            skipSegmentLabel.bottomAnchor.constraint(
+                equalTo: skipSegmentButton.bottomAnchor, constant: -14),
+            skipSegmentLabel.leadingAnchor.constraint(
+                equalTo: skipSegmentButton.leadingAnchor, constant: 30),
+            skipSegmentLabel.trailingAnchor.constraint(
+                equalTo: skipSegmentButton.trailingAnchor, constant: -30),
+        ])
     }
 
     private func setupLiveOverlays() {
@@ -710,6 +748,7 @@ final class AppleTvPlayerViewController: UIViewController {
         parseNextUp(args["nextUp"])
         parsePauseMeta(args["pauseMeta"])
         parseLive(args)
+        parseMediaSegments(args["mediaSegments"])
 
         loadLogo((args["logoUrl"] as? String) ?? "")
 
@@ -803,6 +842,87 @@ final class AppleTvPlayerViewController: UIViewController {
             return
         }
         pauseMeta = (overview: overview, imageUrl: (dict["imageUrl"] as? String) ?? "")
+    }
+
+    private func parseMediaSegments(_ raw: Any?) {
+        let parsed = ((raw as? [[String: Any]]) ?? []).compactMap {
+            entry -> (startMs: Int, endMs: Int, action: String, label: String)? in
+            guard let startMs = (entry["startMs"] as? NSNumber)?.intValue,
+                let endMs = (entry["endMs"] as? NSNumber)?.intValue,
+                let action = entry["action"] as? String, endMs > startMs
+            else { return nil }
+            return (
+                startMs: startMs, endMs: endMs, action: action,
+                label: (entry["label"] as? String) ?? "Skip")
+        }
+        let signature = parsed.map { "\($0.startMs)-\($0.endMs)" }.joined(separator: ",")
+        if signature != mediaSegmentsSignature {
+            mediaSegmentsSignature = signature
+            skippedSegmentKeys.removeAll()
+            hideSkipSegment()
+        }
+        mediaSegments = parsed
+    }
+
+    private func updateMediaSegments() {
+        guard !isLive, !mediaSegments.isEmpty, player.duration > 0 else {
+            hideSkipSegment()
+            return
+        }
+        let posMs = Int(player.currentTime * 1000)
+        skippedSegmentKeys = skippedSegmentKeys.filter { key in
+            guard let segment = mediaSegments.first(where: {
+                "\($0.startMs)-\($0.endMs)" == key
+            }) else { return false }
+            return posMs >= segment.startMs
+        }
+
+        guard let segment = mediaSegments.first(where: {
+            posMs >= $0.startMs && posMs < $0.endMs
+        }) else {
+            hideSkipSegment()
+            return
+        }
+        let key = "\(segment.startMs)-\(segment.endMs)"
+        if skippedSegmentKeys.contains(key) {
+            hideSkipSegment()
+            return
+        }
+        if segment.action == "skip" {
+            skippedSegmentKeys.insert(key)
+            hideSkipSegment()
+            player.seek(to: Double(segment.endMs) / 1000.0)
+            return
+        }
+        showSkipSegment(label: segment.label, key: key)
+    }
+
+    private func showSkipSegment(label: String, key: String) {
+        activeSkipSegmentKey = key
+        skipSegmentLabel.text = label
+        guard skipSegmentButton.isHidden else { return }
+        skipSegmentButton.alpha = 0
+        skipSegmentButton.isHidden = false
+        UIView.animate(withDuration: 0.2) { self.skipSegmentButton.alpha = 1 }
+    }
+
+    private func hideSkipSegment() {
+        activeSkipSegmentKey = nil
+        guard !skipSegmentButton.isHidden else { return }
+        UIView.animate(withDuration: 0.15) {
+            self.skipSegmentButton.alpha = 0
+        } completion: { _ in
+            self.skipSegmentButton.isHidden = true
+        }
+    }
+
+    private func performSkipSegment() {
+        guard let key = activeSkipSegmentKey,
+            let segment = mediaSegments.first(where: { "\($0.startMs)-\($0.endMs)" == key })
+        else { return }
+        skippedSegmentKeys.insert(key)
+        hideSkipSegment()
+        player.seek(to: Double(segment.endMs) / 1000.0)
     }
 
     private func loadImage(
@@ -941,6 +1061,11 @@ final class AppleTvPlayerViewController: UIViewController {
                 if nextUpVisible {
                     onNext?()
                     hideNextUp()
+                    return
+                }
+                if activeSkipSegmentKey != nil {
+                    performSkipSegment()
+                    showOsd()
                     return
                 }
                 handleSelect()
@@ -1536,6 +1661,7 @@ final class AppleTvPlayerViewController: UIViewController {
             updateNextUp(remaining: max(0, duration - player.currentTime))
         }
         updatePauseOverlay()
+        updateMediaSegments()
 
         let shouldShow =
             isPaused() || scrubTargetMs != nil

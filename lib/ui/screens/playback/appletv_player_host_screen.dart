@@ -8,7 +8,9 @@ import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../data/models/media_segment.dart';
 import '../../../data/models/trickplay_info.dart';
+import '../../../data/services/media_segment_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../playback/appletv_mpv_backend.dart';
 import '../../../playback/playback_profile_diagnostics.dart';
@@ -32,6 +34,8 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
   bool _exiting = false;
   final Map<String, List<Map<String, dynamic>>> _castCache = {};
   String? _castResolving;
+  final Map<String, List<Map<String, dynamic>>> _segmentCache = {};
+  String? _segmentResolving;
 
   AppleTvMpvBackend? get _backend {
     try {
@@ -597,6 +601,65 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
     }();
   }
 
+  List<Map<String, dynamic>> _mediaSegments(dynamic item) {
+    final id = _itemIdForQueueItem(item);
+    if (id != null && _segmentCache.containsKey(id)) {
+      return _segmentCache[id]!;
+    }
+    return const [];
+  }
+
+  String _segmentLabel(MediaSegmentType type) {
+    return switch (type) {
+      MediaSegmentType.intro => 'Skip Intro',
+      MediaSegmentType.outro => 'Skip Credits',
+      MediaSegmentType.recap => 'Skip Recap',
+      MediaSegmentType.preview => 'Skip Preview',
+      _ => 'Skip',
+    };
+  }
+
+  void _resolveSegmentsAsync(dynamic item) {
+    final id = _itemIdForQueueItem(item);
+    if (id == null || id.isEmpty) return;
+    if (_segmentCache.containsKey(id) || _segmentResolving == id) return;
+    final client = _clientForQueueItem(item);
+    if (client == null) return;
+    _segmentResolving = id;
+    () async {
+      try {
+        final prefs = GetIt.instance<UserPreferences>();
+        final service = MediaSegmentService(
+          client,
+          FeatureDetector(serverType: client.serverType, serverVersion: ''),
+          prefs,
+        );
+        await service.loadSegments(id);
+        final actionMap = service.actionMap;
+        final result = <Map<String, dynamic>>[];
+        for (final segment in service.segments) {
+          final action = actionMap[segment.type] ?? MediaSegmentAction.nothing;
+          if (action == MediaSegmentAction.nothing) continue;
+          final spanMs = segment.end.inMilliseconds - segment.start.inMilliseconds;
+          final minMs = action == MediaSegmentAction.skip ? 1000 : 3000;
+          if (spanMs < minMs) continue;
+          result.add({
+            'startMs': segment.start.inMilliseconds,
+            'endMs': segment.end.inMilliseconds,
+            'action': action == MediaSegmentAction.skip ? 'skip' : 'ask',
+            'label': _segmentLabel(segment.type),
+          });
+        }
+        _segmentCache[id] = result;
+      } catch (_) {
+        _segmentCache[id] = const [];
+      } finally {
+        _segmentResolving = null;
+        if (mounted) _pushMetadata();
+      }
+    }();
+  }
+
   Map<String, dynamic>? _nextUpPayload(PlaybackManager manager) {
     final next = manager.queueService.peekNext;
     if (next == null) return null;
@@ -807,9 +870,11 @@ class _AppleTvPlayerHostScreenState extends State<AppleTvPlayerHostScreen> {
       nextUpThresholdMs: _nextUpThresholdMs(),
       pauseMeta: _pauseMetaPayload(item),
       selectedBitrateMbps: manager.maxBitrateOverrideMbps ?? -1,
+      mediaSegments: _mediaSegments(item),
     );
 
     _resolveCastAsync(item);
+    _resolveSegmentsAsync(item);
   }
 
   String _maxResolutionLabel() {
