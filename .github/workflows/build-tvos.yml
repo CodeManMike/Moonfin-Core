@@ -21,8 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select latest Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.app || true
+      - name: Select Xcode 26 (tvOS 26 SDK)
+        run: |
+          # App Store Connect rejects tvOS uploads not built against the tvOS 26
+          # SDK, which ships with Xcode 26. Pick the newest Xcode 26.x present.
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE" ]; then
+            echo "::error::Xcode 26 not found on runner; required for the tvOS 26 SDK"
+            ls -d /Applications/Xcode*.app || true
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
 
       - name: Install tvOS platform
         run: |
