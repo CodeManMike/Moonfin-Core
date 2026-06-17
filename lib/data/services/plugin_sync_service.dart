@@ -841,6 +841,11 @@ class PluginSyncService extends ChangeNotifier {
         UserPreferences.homeRowsStyle,
         enumValues: prefs.HomeRowsStyle.values,
       );
+      _applyBool(
+        resolved,
+        'fullScreenRows',
+        UserPreferences.fullScreenRows,
+      );
       _applyString(
         resolved,
         'homeImageTypeContinueWatching',
@@ -867,6 +872,11 @@ class PluginSyncService extends ChangeNotifier {
         resolved,
         'displayGenresRows',
         UserPreferences.displayGenresRows,
+      );
+      _applyBool(
+        resolved,
+        'displaySeerrRows',
+        UserPreferences.displaySeerrRows,
       );
       _applyBool(
         resolved,
@@ -1354,6 +1364,8 @@ class PluginSyncService extends ChangeNotifier {
         UserPreferences.displayCollectionsRows,
       ),
       'displayGenresRows': _prefs.get(UserPreferences.displayGenresRows),
+      'fullScreenRows': _prefs.get(UserPreferences.fullScreenRows),
+      'displaySeerrRows': _prefs.get(UserPreferences.displaySeerrRows),
       'useDetailedSubHeadings': _prefs.get(
         UserPreferences.useDetailedSubHeadings,
       ),
