@@ -361,7 +361,10 @@ class AppleTvMpvBackend implements PlayerBackend {
     return url;
   }
 
+  static final bool _audioPassthroughPathEnabled = false;
+
   bool _audioPassthroughEligible(Map<dynamic, dynamic> payload) {
+    if (!_audioPassthroughPathEnabled) return false;
     if (!_prefs.get(UserPreferences.appleTvAudioPassthroughEnabled)) return false;
     final codec = (payload['audioCodec']?.toString() ?? '').toLowerCase();
     if (codec != 'eac3' && codec != 'ac3') return false;
