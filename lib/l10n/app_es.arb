@@ -2295,7 +2295,7 @@
             }
         }
     },
-    "seerr": "Vidente",
+    "seerr": "Seerr",
     "@seerr": {
         "description": "Seerr brand name"
     },
