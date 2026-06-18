@@ -426,9 +426,9 @@ class _GradientScrim extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppColorScheme.scrim.withValues(alpha: 0.67),
-            AppColorScheme.scrim.withValues(alpha: 0.27),
-            AppColorScheme.scrim.withValues(alpha: 0.73),
+            AppColorScheme.scrim.withValues(alpha: 0.8),
+            AppColorScheme.scrim.withValues(alpha: 0.4),
+            AppColorScheme.scrim.withValues(alpha: 0.8),
           ],
           stops: [0.0, 0.3, 1.0],
         ),
