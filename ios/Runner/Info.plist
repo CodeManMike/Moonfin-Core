@@ -80,6 +80,8 @@
 	<string>Moonfin needs camera access to let you capture images for media artwork and metadata.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Moonfin does not track your location; this access is only used to read location metadata stored in images you choose for media artwork.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Moonfin does not track your location; this access is only used to read location metadata stored in images you choose for media artwork.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Moonfin needs speech recognition access for voice search.</string>
 	<key>NSBonjourServices</key>
