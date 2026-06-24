@@ -333,7 +333,7 @@ class _RepositoryDialogState extends State<_RepositoryDialog> {
               keyboardType: TextInputType.url,
             ),
             const SizedBox(height: 12),
-            SwitchListTile(
+            SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               title: Text(AppLocalizations.of(context).enabled),
               value: _enabled,

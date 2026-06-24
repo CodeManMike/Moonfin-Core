@@ -37,7 +37,10 @@ class _AppearanceThemeScreenState extends State<AppearanceThemeScreen> {
     return withCleanSettingsTypography(
       context,
       Scaffold(
-        appBar: buildSettingsAppBar(context, Text(l10n.settingsAppearanceTheme)),
+        appBar: buildSettingsAppBar(
+          context,
+          Text(l10n.settingsAppearanceTheme),
+        ),
         body: ListenableBuilder(
           listenable: prefs,
           builder: (context, _) {
@@ -62,7 +65,10 @@ class _AppearanceThemeScreenState extends State<AppearanceThemeScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   if (AppUiIdiomResolver.styleAvailable()) ...[
-                    Text(l10n.interfaceStyle, style: theme.textTheme.titleMedium),
+                    Text(
+                      l10n.interfaceStyle,
+                      style: theme.textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 10),
                     adaptiveSegmented<InterfaceStyle>(
                       options: {
@@ -88,13 +94,17 @@ class _AppearanceThemeScreenState extends State<AppearanceThemeScreen> {
                   Text(
                     l10n.settingsAppearanceThemeSubtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.74),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.74,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   for (var i = 0; i < themes.length; i++) ...[
                     _ThemePreviewCard(
-                      focusNode: themes[i].id == ThemeRegistry.moonfinId ? _moonfinFocusNode : null,
+                      focusNode: themes[i].id == ThemeRegistry.moonfinId
+                          ? _moonfinFocusNode
+                          : null,
                       themeId: themes[i].id,
                       title: _titleForTheme(l10n, themes[i]),
                       subtitle: _subtitleForTheme(l10n, themes[i]),
@@ -181,30 +191,31 @@ class _ThemePreviewCardState extends State<_ThemePreviewCard> {
             width: 2.0,
           )
         : (widget.selected
-            ? borderTokens.chipBorder.copyWith(
-                color: AppColorScheme.accent,
-                width: 2.0,
-              )
-            : borderTokens.chipBorder.copyWith(
-                color: theme.colorScheme.outlineVariant,
-                width: 1.0,
-              ));
+              ? borderTokens.chipBorder.copyWith(
+                  color: AppColorScheme.accent,
+                  width: 2.0,
+                )
+              : borderTokens.chipBorder.copyWith(
+                  color: theme.colorScheme.outlineVariant,
+                  width: 1.0,
+                ));
 
     final shadow = _focused
         ? (borderTokens.focusGlow.isNotEmpty
-            ? borderTokens.focusGlow
-            : [
-                BoxShadow(
-                  color: AppColorScheme.accent.withValues(alpha: 0.22),
-                  blurRadius: 14,
-                  spreadRadius: 0.5,
-                ),
-              ])
+              ? borderTokens.focusGlow
+              : [
+                  BoxShadow(
+                    color: AppColorScheme.accent.withValues(alpha: 0.22),
+                    blurRadius: 14,
+                    spreadRadius: 0.5,
+                  ),
+                ])
         : null;
 
     return InkWell(
       focusNode: widget.focusNode,
-      autofocus: PlatformDetection.isTV && widget.themeId == ThemeRegistry.moonfinId,
+      autofocus:
+          PlatformDetection.isTV && widget.themeId == ThemeRegistry.moonfinId,
       borderRadius: BorderRadius.circular(18),
       onFocusChange: (f) {
         setState(() => _focused = f);
@@ -225,7 +236,9 @@ class _ThemePreviewCardState extends State<_ThemePreviewCard> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(widget.title, style: theme.textTheme.titleMedium)),
+                Expanded(
+                  child: Text(widget.title, style: theme.textTheme.titleMedium),
+                ),
                 if (widget.selected)
                   Icon(Icons.check_circle, color: AppColorScheme.accent),
               ],

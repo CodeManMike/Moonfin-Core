@@ -1,10 +1,13 @@
+import 'package:flutter/cupertino.dart' show CupertinoSlider;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:moonfin_design/moonfin_design.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 
+import '../../../util/idiom/app_ui_idiom.dart';
 import '../../../util/focus/dpad_keys.dart';
+import '../adaptive/adaptive_icons.dart';
 import '../overlay_sheet.dart';
 import 'preference_binding.dart';
 
@@ -63,6 +66,25 @@ Widget buildSettingsLeadingIconShell(
   required bool focused,
   required Color iconColor,
 }) {
+  if (AppUiIdiomResolver.current == AppUiIdiom.iosMobile) {
+    final glyph = icon is Icon ? icon.icon : null;
+    return SizedBox(
+      width: _kSettingsIconShellSize,
+      height: _kSettingsIconShellSize,
+      child: Center(
+        child: glyph != null
+            ? Icon(
+                cupertinoGlyphFor(glyph),
+                size: 24,
+                color: appleSettingsIconColor(glyph),
+              )
+            : IconTheme(
+                data: IconThemeData(size: 24, color: iconColor),
+                child: icon,
+              ),
+      ),
+    );
+  }
   final borderTokens = ThemeRegistry.active.borders;
   return Container(
     width: _kSettingsIconShellSize,
@@ -582,16 +604,32 @@ class _SliderPreferenceTileState extends State<SliderPreferenceTile> {
                               : AppColorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
-                    Slider(
-                      focusNode: _sliderInternalNode,
-                      value: value.toDouble().clamp(widget.min, widget.max),
-                      min: widget.min,
-                      max: widget.max,
-                      divisions: widget.divisions,
-                      label: widget.labelOf?.call(value) ?? value.toString(),
-                      onChanged: (v) => _binding.value = v.round(),
-                      onChangeEnd: (_) => widget.onChangeEnd?.call(),
-                    ),
+                    AppUiIdiomResolver.current == AppUiIdiom.iosMobile
+                        ? CupertinoSlider(
+                            value: value.toDouble().clamp(
+                              widget.min,
+                              widget.max,
+                            ),
+                            min: widget.min,
+                            max: widget.max,
+                            divisions: widget.divisions,
+                            onChanged: (v) => _binding.value = v.round(),
+                            onChangeEnd: (_) => widget.onChangeEnd?.call(),
+                          )
+                        : Slider(
+                            focusNode: _sliderInternalNode,
+                            value: value.toDouble().clamp(
+                              widget.min,
+                              widget.max,
+                            ),
+                            min: widget.min,
+                            max: widget.max,
+                            divisions: widget.divisions,
+                            label:
+                                widget.labelOf?.call(value) ?? value.toString(),
+                            onChanged: (v) => _binding.value = v.round(),
+                            onChangeEnd: (_) => widget.onChangeEnd?.call(),
+                          ),
                   ],
                 ),
               ),

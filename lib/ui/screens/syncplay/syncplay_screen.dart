@@ -301,7 +301,7 @@ class _ActiveGroupSectionState extends State<_ActiveGroupSection> {
             const Divider(height: 24),
             _buildTileWithFocused(
               context,
-              builder: (context, focused) => SwitchListTile(
+              builder: (context, focused) => SwitchListTile.adaptive(
                 focusNode: widget.ignoreWaitFocus,
                 contentPadding: PlatformDetection.isTV
                     ? const EdgeInsets.symmetric(horizontal: 16)

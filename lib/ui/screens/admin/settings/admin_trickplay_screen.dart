@@ -140,17 +140,17 @@ class _AdminTrickplayScreenState extends State<AdminTrickplayScreen> {
         ),
         const SizedBox(height: 24),
         _sectionHeader(l10n.general),
-        SwitchListTile(
+        SwitchListTile.adaptive(
           title: Text(l10n.adminTrickplayHwAccel),
           value: _boolOpt('EnableHwAcceleration'),
           onChanged: (v) => setState(() => _opts['EnableHwAcceleration'] = v),
         ),
-        SwitchListTile(
+        SwitchListTile.adaptive(
           title: Text(l10n.adminTrickplayHwEncoding),
           value: _boolOpt('EnableHwEncoding'),
           onChanged: (v) => setState(() => _opts['EnableHwEncoding'] = v),
         ),
-        SwitchListTile(
+        SwitchListTile.adaptive(
           title: Text(l10n.adminTrickplayKeyFrameOnly),
           subtitle: Text(l10n.adminTrickplayKeyFrameOnlySubtitle),
           value: _boolOpt('EnableKeyFrameOnlyExtraction'),

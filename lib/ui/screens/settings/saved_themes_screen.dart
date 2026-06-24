@@ -230,7 +230,9 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
               adaptiveDialogAction(
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
-                  unawaited(controller.applyThemeById(_prefs, themeSpecFile.spec.id));
+                  unawaited(
+                    controller.applyThemeById(_prefs, themeSpecFile.spec.id),
+                  );
                 },
                 child: Text(l10n.apply),
               ),
@@ -265,7 +267,9 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
       context,
       RequestInitialFocus(
         targetNode: PlatformDetection.isTV
-            ? (_savedThemes.isNotEmpty ? _firstItemFocusNode : _refreshFocusNode)
+            ? (_savedThemes.isNotEmpty
+                  ? _firstItemFocusNode
+                  : _refreshFocusNode)
             : null,
         child: Scaffold(
           appBar: buildSettingsAppBar(
@@ -277,7 +281,9 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
                 style: IconButton.styleFrom(
                   focusColor: AppColorScheme.accent.withValues(alpha: 0.18),
                 ),
-                onPressed: _loading ? null : () => unawaited(_loadSavedThemes()),
+                onPressed: _loading
+                    ? null
+                    : () => unawaited(_loadSavedThemes()),
                 icon: const Icon(Icons.refresh),
                 tooltip: l10n.refresh,
               ),
@@ -326,10 +332,13 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
                             title: Text(entry.spec.displayName),
                             subtitle: Text(
                               selectedCustomId == entry.spec.id
-                                  ? l10n.savedThemesCurrentThemeId(entry.spec.id)
+                                  ? l10n.savedThemesCurrentThemeId(
+                                      entry.spec.id,
+                                    )
                                   : entry.spec.id,
                             ),
-                            onTap: () => unawaited(_showThemeActionsDialog(entry)),
+                            onTap: () =>
+                                unawaited(_showThemeActionsDialog(entry)),
                             trailing: _deletingThemeId == entry.spec.id
                                 ? const SizedBox(
                                     width: 20,
@@ -341,7 +350,9 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
                                 : Icon(
                                     Icons.delete_outline,
                                     color: focused
-                                        ? AppColors.black.withValues(alpha: 0.54)
+                                        ? AppColors.black.withValues(
+                                            alpha: 0.54,
+                                          )
                                         : null,
                                   ),
                           ),
@@ -354,12 +365,17 @@ class _SavedThemesScreenState extends State<SavedThemesScreen> {
                             title: Text(entry.spec.displayName),
                             subtitle: Text(
                               selectedCustomId == entry.spec.id
-                                  ? l10n.savedThemesCurrentThemeId(entry.spec.id)
+                                  ? l10n.savedThemesCurrentThemeId(
+                                      entry.spec.id,
+                                    )
                                   : entry.spec.id,
                             ),
                             onTap: () async {
                               final controller = AppThemeScope.of(context);
-                              await controller.applyThemeById(_prefs, entry.spec.id);
+                              await controller.applyThemeById(
+                                _prefs,
+                                entry.spec.id,
+                              );
                             },
                             trailing: _deletingThemeId == entry.spec.id
                                 ? const SizedBox(

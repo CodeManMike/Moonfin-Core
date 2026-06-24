@@ -307,7 +307,7 @@ class _AdminLibraryEditScreenState
   }
 
   Widget _optionSwitch(String key, String title, String subtitle) {
-    return SwitchListTile(
+    return SwitchListTile.adaptive(
       title: Text(title),
       subtitle: Text(subtitle),
       value: _options[key] as bool? ?? false,

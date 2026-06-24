@@ -624,7 +624,7 @@ class _ActionsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SwitchListTile(
+            SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               title: Text(
                 AppLocalizations.of(context).adminPluginDetailEnablePlugin,

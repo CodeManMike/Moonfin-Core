@@ -444,7 +444,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
       padding: const EdgeInsets.all(16),
       children: [
         _sectionHeader(l10n.adminLibraryAccess),
-        SwitchListTile(
+        SwitchListTile.adaptive(
           title: Text(l10n.adminEnableAllLibraryAccess),
           value: enableAllFolders,
           onChanged: (v) => _togglePolicy('EnableAllFolders', v),
@@ -568,7 +568,7 @@ class _AdminUserEditScreenState extends ConsumerState<AdminUserEditScreen>
   }
 
   Widget _policySwitch(String key, String label) {
-    return SwitchListTile(
+    return SwitchListTile.adaptive(
       title: Text(label),
       value: _policy[key] as bool? ?? false,
       onChanged: (v) => _togglePolicy(key, v),

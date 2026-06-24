@@ -2077,7 +2077,7 @@ class _RequestDialogState extends State<_RequestDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.vm.canRequest4k)
-            SwitchListTile(
+            SwitchListTile.adaptive(
               title: Text(
                 l10n.uhd4k,
                 style: const TextStyle(color: Colors.white),
