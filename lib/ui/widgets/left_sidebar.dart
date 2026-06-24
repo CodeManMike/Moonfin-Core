@@ -989,6 +989,15 @@ class _LeftSidebarState extends State<LeftSidebar> {
                                           '/music/${lib.id}',
                                         );
                                       } else if (lib.collectionType ==
+                                              'books' ||
+                                          lib.collectionType == 'audiobooks') {
+                                        context.navigateTopLevel(
+                                          Destinations.bookLibrary(
+                                            lib.id,
+                                            collectionType: lib.collectionType,
+                                          ),
+                                        );
+                                      } else if (lib.collectionType ==
                                           'livetv') {
                                         context.navigateTopLevel(
                                           Destinations.liveTvGuide,

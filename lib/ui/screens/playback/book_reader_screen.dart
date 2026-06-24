@@ -77,6 +77,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
   List<ArchiveFile> _comicEntries = const [];
   final Map<int, Uint8List> _comicPageCache = {};
   final Map<int, double> _comicAspectRatios = {};
+  double? _comicMeasuredAspect;
   int _comicDecodeWidth = 1080;
   int _currentComicPage = 0;
   double _comicZoom = 1.0;
@@ -402,6 +403,7 @@ class _BookReaderScreenState extends State<BookReaderScreen>
       _comicEntries = const [];
       _comicPageCache.clear();
       _comicAspectRatios.clear();
+      _comicMeasuredAspect = null;
       _currentComicPage = 0;
       _comicZoom = 1.0;
       _webLoadProgress = 0;
@@ -2114,11 +2116,16 @@ class _BookReaderScreenState extends State<BookReaderScreen>
           );
           final page = (fraction * (_comicPageCount - 1)).round();
           if (page != _currentComicPage) {
-            setState(() => _currentComicPage = page);
+            _currentComicPage = page;
             _primeComicCacheAround(page);
             _precacheComicNeighbors(page);
-            _saveComicState();
           }
+        }
+        if (notification is ScrollEndNotification) {
+          if (mounted) {
+            setState(() {});
+          }
+          _scheduleComicStateSave();
         }
         return false;
       },
@@ -2134,7 +2141,9 @@ class _BookReaderScreenState extends State<BookReaderScreen>
               itemCount: _comicPageCount,
               itemBuilder: (context, index) {
                 final aspect =
-                    _comicAspectRatios[index] ?? _defaultComicAspect;
+                    _comicAspectRatios[index] ??
+                    _comicMeasuredAspect ??
+                    _defaultComicAspect;
                 final estimatedHeight = aspect > 0 ? width / aspect : width;
                 final bytes = _comicPageBytesAt(index);
                 if (bytes == null) {
@@ -2147,7 +2156,10 @@ class _BookReaderScreenState extends State<BookReaderScreen>
                     width: width,
                     decodeWidth: _comicDecodeWidth,
                     initialAspect: aspect,
-                    onAspect: (value) => _comicAspectRatios[index] = value,
+                    onAspect: (value) {
+                      _comicAspectRatios[index] = value;
+                      _comicMeasuredAspect ??= value;
+                    },
                   ),
                 );
               },
