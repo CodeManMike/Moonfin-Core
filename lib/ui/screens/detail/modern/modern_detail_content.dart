@@ -697,6 +697,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasStudios) studios,
           if (item.chapters.isNotEmpty) chapters,
           details,
+          if (hasFeatures) _ModernTab(l10n.extras, _extrasTab),
           if (hasSimilar) similar,
         ];
       case 'Season':
@@ -707,6 +708,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
           if (hasCrew) crew,
           if (hasStudios) studios,
           if (item.chapters.isNotEmpty) chapters,
+          if (hasFeatures) _ModernTab(l10n.extras, _extrasTab),
         ];
       case 'Episode':
         return [
