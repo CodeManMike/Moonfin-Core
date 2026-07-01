@@ -113,7 +113,42 @@ Replace `all_genres_screen.dart`'s current image-collage grid (`GenreGridCard`, 
 
 ---
 
-## 8. UX polish backlog (from comparative audit vs. Plex/Findroid/Streamyfin/official Jellyfin)
+## 8. In-player episode & season switcher
+
+Let a user jump to any episode or season while still in the player, not just advance sequentially to the next one.
+
+**Confirmed from reading the actual queue/playback architecture**: `QueueService` already supports arbitrary jumps within the loaded queue (`jumpTo`, `PlaybackManager.playFromQueue`) — but the queue is built once, from one season's episode siblings only (`item_detail_screen.dart:7515`), and there's no "load more"/splice API to extend it with another season. The player itself (`video_player_screen.dart`) has no knowledge of series/season structure today — that data only lives in `ItemDetailViewModel` (`_loadSeasons`/`_loadEpisodes`/`loadAllSeriesEpisodes`), which isn't passed into or retained by the player.
+
+**Design**:
+- New overlay widget, `episode_switcher_overlay.dart`, modeled on the existing `next_up_overlay.dart` pattern: season tabs + episode grid.
+- Player fetches season/episode data on demand via `_clientForItem(currentItem)` + `item.seriesId`, replicating the same `getSeasons`/`getEpisodes` calls `ItemDetailViewModel` already makes. Worth considering extracting that fetch logic into a small shared service both the ViewModel and the player call, rather than duplicating it — cleaner, modest extra scope.
+- Selecting an episode in a different season needs a queue-mutation path. Simplest option: rebuild the queue via `playItems(newEpisodeList, startIndex: tappedIndex)` (loses continuity back to the previous season if the user backs out). Better option: add a `replaceFrom`/splice method to `QueueService` that swaps the remainder of the queue while preserving playback history — worth doing given how central the queue already is to this codebase's playback model.
+
+**Scope**: medium.
+
+---
+
+## 9. Deeper Seerr integration
+
+Two distinct pieces, since research showed one is nearly free and the other is a genuine reach.
+
+### 9.1 Request a missing season directly from the library series you already own (small — do this)
+
+**Key finding**: the wire protocol, request models, and repository method already fully support per-season requests end-to-end — `SeerrHttpClient.createRequest` already accepts a `seasons` list or `allSeasons`, `SeerrCreateRequest` already has `specificSeasons(...)`/`allSeasons(...)` factories, and a complete season-picker UI (`_SeasonSelector`, checkboxes, already-requested seasons grayed out) already exists in `seerr_media_detail_screen.dart`. **The only gap is that this flow is never reachable from a real library series' own detail screen** — today a user can only get to it by re-searching the show through Seerr's separate discovery/search UI, even for a show they already partly own.
+
+**Design**: add a "Request on Seerr" affordance to the real library series detail screen (`item_detail_screen.dart` / `modern_detail_content.dart`), resolving the Jellyfin series to its Seerr/TMDB identity via the already-implemented `getTvDetailsByTvdb` lookup, and reusing the existing `_SeasonSelector` sheet/widget rather than rebuilding it. This directly answers "ask for the next season, or a specific season of an already-existing series" — that's exactly what Jellyseerr's per-season request already models; Moonfin just needs to link to it from the right place.
+
+**Note on granularity**: Jellyseerr's API only reports whole-season status (`PARTIALLY_AVAILABLE`/`AVAILABLE`/etc.), not per-episode gaps within a season — "episodes 5-10 of season 2 are missing" isn't data Seerr exposes at all (that level of detail only lives in Sonarr directly). Season-level requesting (what the user actually asked for) is fully supported; individual-missing-episode detection is a separate, larger undertaking (see below) and out of scope for this pass.
+
+### 9.2 Unify search results with Seerr, and surface "missing content" affordances more broadly (medium — optional follow-on)
+
+Search already shows Seerr results inline on the same screen as library results (not a fully separate tab, contrary to how it reads today) — but as a segregated trailing row, not deduplicated or merged with library hits for the same title. True unification (suppressing a Seerr entry for a title you already own, adding an inline request affordance directly on search result cards) requires: matching Seerr results against library results by TMDB/IMDB id, extracting the request-submission logic out of `seerr_media_detail_view_model.dart` into something shareable, a Seerr-item variant of the long-press context menu, and care around the search screen's D-pad focus/row-index logic (real regression risk on TV). Worth doing, but genuinely separate, larger work from 9.1 — can be sequenced after or dropped if 9.1 alone satisfies the itch.
+
+**Scope**: 9.1 small; 9.2 medium.
+
+---
+
+## 10. UX polish backlog (from comparative audit vs. Plex/Findroid/Streamyfin/official Jellyfin)
 
 Moonfin already beats the official Jellyfin Android TV client in several respects worth preserving as-is: working skip-intro/credits + next-up overlays with countdown rings, per-row focus memory that correctly survives detail-screen pop-back, trickplay scrub preview, and voice search with a custom TV keyboard. The gap versus Plex/Findroid/Streamyfin is mostly **timing/consistency polish**, not missing features, with one genuine architectural gap (season/episode navigation). Prioritized:
 
@@ -156,4 +191,6 @@ Moonfin already beats the official Jellyfin Android TV client in several respect
 - **Collections/ACdb (§3)**: verify against the user's real ACdb-managed collections after they enable tagging; confirm the TMDB collection-ID caveat one way or the other before finalizing the missing-items flow.
 - **Jellysleep (§4)**: verify against the live Jellysleep plugin already installed on the user's server.
 - **Cinema Mode (§5)** and **Genres (§7)**: visual/manual verification on an Android TV build.
-- **UX polish backlog (§8)**: no single test covers this — treat as an ongoing backlog to work through, verifying each item individually against a real remote (or remote-emulation) on Android TV hardware, not just desktop/mouse testing.
+- **Episode/season switcher (§8)**: verify mid-playback season switching preserves (or intentionally resets) playback queue continuity as designed; test on a series with multiple seasons on real Android TV remote input.
+- **Deeper Seerr integration (§9)**: verify §9.1 against a real partially-available series on the user's Jellyseerr instance (request a specific missing season and confirm it reaches Jellyseerr correctly); §9.2, if pursued, needs explicit TV focus-navigation regression testing on the search screen given the real risk of D-pad regressions noted in research.
+- **UX polish backlog (§10)**: no single test covers this — treat as an ongoing backlog to work through, verifying each item individually against a real remote (or remote-emulation) on Android TV hardware, not just desktop/mouse testing.
