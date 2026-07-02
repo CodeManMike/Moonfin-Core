@@ -1,5 +1,3 @@
-That's fine, no CI reference needed — `flutter test <path>` per the user's instructions is the standard invocation. Now writing the final plan.
-
 # Vertical Navigation, Focus Treatment & Playback Polish Implementation Plan
 
 > For agentic workers, REQUIRED SUB-SKILL is superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task, and steps use checkbox dash-bracket syntax for tracking.

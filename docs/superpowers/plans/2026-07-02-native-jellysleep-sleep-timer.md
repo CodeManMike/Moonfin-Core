@@ -1,7 +1,3 @@
-This confirms `_controlButton` already wraps icons in `AdaptiveIcon` automatically — so the plan just needs to pass an `IconData` (`Icons.bedtime_outlined` / `Icons.bedtime`) to `_controlButton`, no separate icon-widget work needed. Now I'll write the complete plan.
-
----
-
 # Jellysleep Native Sleep Timer Implementation Plan
 
 > For agentic workers, REQUIRED SUB-SKILL is superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task, and steps use checkbox dash-bracket syntax for tracking.

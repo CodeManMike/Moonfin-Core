@@ -1,5 +1,3 @@
-Now I have all the grounding needed. Let me produce the final plan.
-
 # Bug Fixes (Spec §1) Implementation Plan
 
 > For agentic workers, REQUIRED SUB-SKILL is superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task by task, and steps use checkbox dash-bracket syntax for tracking.
