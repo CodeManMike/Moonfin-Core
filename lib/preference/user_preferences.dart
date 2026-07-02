@@ -1853,6 +1853,13 @@ class UserPreferences extends ChangeNotifier {
         values: LibrarySortBy.values,
       );
 
+  static EnumPreference<LibrarySortBy> folderBrowseSortBy(String folderId) =>
+      EnumPreference(
+        key: 'folder_browse_sort_by_$folderId',
+        defaultValue: LibrarySortBy.name,
+        values: LibrarySortBy.values,
+      );
+
   static EnumPreference<SortDirection> librarySortDirection(String libraryId) =>
       EnumPreference(
         key: 'library_sort_dir_$libraryId',

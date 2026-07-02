@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:server_core/server_core.dart';
+import 'package:server_jellyfin/server_jellyfin.dart';
 
+import '../../preference/preference_constants.dart';
+import '../../preference/user_preferences.dart';
 import '../models/aggregated_item.dart';
 import '../utils/playlist_utils.dart';
 
@@ -16,8 +19,10 @@ enum FolderBrowseState { loading, ready, error }
 
 class FolderBrowseViewModel extends ChangeNotifier {
   final MediaServerClient _client;
+  final UserPreferences _prefs;
 
   final String? _serverId;
+  final String _rootFolderId;
 
   static const _pageSize = 100;
   static const _fields =
@@ -26,8 +31,39 @@ class FolderBrowseViewModel extends ChangeNotifier {
   static const _imageTypes = 'Primary,Backdrop,Thumb';
   static const _imageTypeLimit = 1;
 
-  FolderBrowseViewModel(this._client, {String? serverId})
-    : _serverId = serverId;
+  FolderBrowseViewModel(
+    this._client, {
+    required UserPreferences prefs,
+    String? serverId,
+    String rootFolderId = '',
+  }) : _prefs = prefs,
+       _serverId = serverId,
+       _rootFolderId = rootFolderId {
+    _sortBy = _prefs.get(UserPreferences.folderBrowseSortBy(_rootFolderId));
+  }
+
+  @visibleForTesting
+  FolderBrowseViewModel.forTesting({
+    required UserPreferences prefs,
+    required String folderId,
+    MediaServerClient? client,
+  }) : _client = client ?? JellyfinMediaServerClient(
+         baseUrl: 'test://test',
+         deviceInfo: const DeviceInfo(
+           id: 'test-device',
+           name: 'Test Device',
+           appName: 'Moonfin',
+           appVersion: '0.0.0',
+         ),
+       ),
+       _prefs = prefs,
+       _serverId = null,
+       _rootFolderId = folderId {
+    _sortBy = _prefs.get(UserPreferences.folderBrowseSortBy(_rootFolderId));
+  }
+
+  late LibrarySortBy _sortBy;
+  LibrarySortBy get sortBy => _sortBy;
 
   ImageApi get imageApi => _client.imageApi;
 
@@ -104,6 +140,13 @@ class FolderBrowseViewModel extends ChangeNotifier {
     await loadFolder(item.id);
   }
 
+  Future<void> setSortBy(LibrarySortBy value) async {
+    if (_sortBy == value) return;
+    _sortBy = value;
+    await _prefs.set(UserPreferences.folderBrowseSortBy(_rootFolderId), value);
+    await loadFolder(currentFolderId.isEmpty ? _rootFolderId : currentFolderId);
+  }
+
   Future<void> loadMore() async {
     if (_loadingMore || !hasMore) return;
     _loadingMore = true;
@@ -177,11 +220,12 @@ class FolderBrowseViewModel extends ChangeNotifier {
     required String parentId,
     required int startIndex,
   }) async {
+    final sortByValue = _sortBy.apiValue;
     try {
       return await _client.itemsApi.getItems(
         parentId: parentId,
         recursive: false,
-        sortBy: 'IsFolder,SortName',
+        sortBy: 'IsFolder,$sortByValue',
         sortOrder: 'Ascending',
         startIndex: startIndex,
         limit: _pageSize,
@@ -199,7 +243,7 @@ class FolderBrowseViewModel extends ChangeNotifier {
       return _client.itemsApi.getItems(
         parentId: parentId,
         recursive: false,
-        sortBy: 'SortName',
+        sortBy: sortByValue,
         sortOrder: 'Ascending',
         startIndex: startIndex,
         limit: _pageSize,

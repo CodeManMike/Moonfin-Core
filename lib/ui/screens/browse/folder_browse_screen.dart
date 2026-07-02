@@ -8,6 +8,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../data/viewmodels/folder_browse_view_model.dart';
+import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../widgets/media_card.dart';
@@ -40,7 +41,12 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
               ) ??
               GetIt.instance<MediaServerClient>()
         : GetIt.instance<MediaServerClient>();
-    _vm = FolderBrowseViewModel(client, serverId: serverId);
+    _vm = FolderBrowseViewModel(
+      client,
+      prefs: GetIt.instance<UserPreferences>(),
+      serverId: serverId,
+      rootFolderId: widget.folderId,
+    );
     _vm.addListener(_onChanged);
     _scrollController.addListener(_onScroll);
     _vm.loadFolder(widget.folderId);
