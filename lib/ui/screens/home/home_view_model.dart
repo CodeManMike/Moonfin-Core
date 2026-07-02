@@ -319,13 +319,13 @@ class HomeViewModel extends ChangeNotifier {
       // configured plugin row in a duplicate group remains visible.
       final enabledBuiltinKeys = visibleConfigsRaw
           .where((c) => c.isBuiltin)
-          .expand(_duplicateKeysForConfig)
+          .expand(duplicateKeysForConfig)
           .toSet();
       final seenPluginKeys = <String>{};
       final visibleConfigs = visibleConfigsRaw
           .where((c) {
             if (!c.isPluginDynamic) return true;
-            final duplicateKeys = _duplicateKeysForConfig(c);
+            final duplicateKeys = duplicateKeysForConfig(c);
             if (duplicateKeys.any(enabledBuiltinKeys.contains)) {
               return false;
             }
@@ -718,11 +718,14 @@ class HomeViewModel extends ChangeNotifier {
     return _placeholderForSection(cfg.type);
   }
 
-  static Set<String> _duplicateKeysForConfig(HomeSectionConfig cfg) {
+  @visibleForTesting
+  static Set<String> duplicateKeysForConfig(HomeSectionConfig cfg) {
     if (cfg.isBuiltin) {
       return _duplicateKeysForBuiltin(cfg.type);
     }
-    return const <String>{};
+    return {
+      'plugin:${cfg.pluginSource.serializedName}:${cfg.pluginSection ?? ''}:${cfg.serverId ?? ''}:${cfg.pluginAdditionalData ?? ''}',
+    };
   }
 
   static Set<String> _duplicateKeysForBuiltin(HomeSectionType type) {
