@@ -90,6 +90,26 @@ void main() {
       expect(keysA, isNot(equals(keysB)));
     });
 
+    test('plugin-dynamic configs differing only by pluginSource produce different keys', () {
+      const configA = HomeSectionConfig(
+        kind: HomeSectionKind.pluginDynamic,
+        pluginSource: HomeSectionPluginSource.collections,
+        serverId: 'server-1',
+        pluginSection: 'trending',
+      );
+      const configB = HomeSectionConfig(
+        kind: HomeSectionKind.pluginDynamic,
+        pluginSource: HomeSectionPluginSource.genres,
+        serverId: 'server-1',
+        pluginSection: 'trending',
+      );
+
+      final keysA = HomeViewModel.duplicateKeysForConfig(configA);
+      final keysB = HomeViewModel.duplicateKeysForConfig(configB);
+
+      expect(keysA, isNot(equals(keysB)));
+    });
+
     test('builtin configs still key off type as before', () {
       const config = HomeSectionConfig(
         kind: HomeSectionKind.builtin,

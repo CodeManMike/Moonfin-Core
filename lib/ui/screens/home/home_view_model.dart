@@ -718,6 +718,19 @@ class HomeViewModel extends ChangeNotifier {
     return _placeholderForSection(cfg.type);
   }
 
+  /// Keys used to detect and suppress duplicate home-section configs.
+  ///
+  /// For plugin-dynamic configs, the key is a composite of the plugin source,
+  /// section, server, and additional-data fields. Two plugin-dynamic configs
+  /// with identical values across all four fields are treated as duplicates
+  /// and collapsed to one — including the edge case where all four
+  /// differentiating fields are null/empty (e.g. two bare custom rows with no
+  /// section/server/data set), which are indistinguishable by design and are
+  /// intentionally collapsed rather than both rendered.
+  ///
+  /// Note: [HomeSectionConfig.stableId] builds a similar composite key, but
+  /// for a different purpose — unique widget/list identity rather than
+  /// dedup-equivalence — so it is intentionally not reused here.
   @visibleForTesting
   static Set<String> duplicateKeysForConfig(HomeSectionConfig cfg) {
     if (cfg.isBuiltin) {
