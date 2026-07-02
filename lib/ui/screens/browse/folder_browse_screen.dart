@@ -8,11 +8,14 @@ import 'package:server_core/server_core.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/services/media_server_client_factory.dart';
 import '../../../data/viewmodels/folder_browse_view_model.dart';
+import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../navigation/destinations.dart';
+import '../../widgets/focus/focusable_toolbar_button.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../widgets/overlay_sheet.dart';
 import '../../../l10n/app_localizations.dart';
 
 class FolderBrowseScreen extends StatefulWidget {
@@ -209,7 +212,7 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 80),
-              if (_vm.breadcrumbs.isNotEmpty) _buildBreadcrumbs(),
+              _buildToolbar(),
               Divider(
                 color: ThemeRegistry.active.borders.chipBorder.color,
                 height: 1,
@@ -222,10 +225,38 @@ class _FolderBrowseScreenState extends State<FolderBrowseScreen> {
     );
   }
 
+  Widget _buildToolbar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: _vm.breadcrumbs.isNotEmpty
+                ? _buildBreadcrumbs()
+                : const SizedBox.shrink(),
+          ),
+          FocusableToolbarButton(
+            icon: Icons.sort,
+            tooltip: AppLocalizations.of(context).sortBy,
+            onTap: () => _showSortDialog(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortDialog(BuildContext context) {
+    showFocusRestoringDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (_) => _FolderSortDialog(vm: _vm),
+    );
+  }
+
   Widget _buildBreadcrumbs() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           for (int i = 0; i < _vm.breadcrumbs.length; i++) ...[
@@ -465,6 +496,145 @@ class _FolderGridCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Minimal sort picker for folder browsing. Unlike library browsing,
+/// folders have no favorites/watched-status/series-status filters, so this
+/// only offers a [LibrarySortBy] choice.
+class _FolderSortDialog extends StatefulWidget {
+  final FolderBrowseViewModel vm;
+
+  const _FolderSortDialog({required this.vm});
+
+  @override
+  State<_FolderSortDialog> createState() => _FolderSortDialogState();
+}
+
+class _FolderSortDialogState extends State<_FolderSortDialog> {
+  @override
+  void initState() {
+    super.initState();
+    widget.vm.addListener(_rebuild);
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    final l10n = AppLocalizations.of(context);
+    final onSurface = AppColorScheme.onSurface;
+    final dividerColor = onSurface.withValues(alpha: 0.12);
+    final surfaceColor = AppColorScheme.surface.withValues(alpha: 0.92);
+    final dialogWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
+      280.0,
+      380.0,
+    );
+
+    return Dialog(
+      backgroundColor: surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.circular(20),
+        side: ThemeRegistry.active.borders.chipBorder.copyWith(
+          color: onSurface.withValues(alpha: 0.18),
+        ),
+      ),
+      child: SizedBox(
+        width: dialogWidth,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                l10n.sortBy,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: onSurface,
+                ),
+              ),
+            ),
+            Divider(color: dividerColor),
+            for (final option in LibrarySortBy.values)
+              _radioTile(
+                label: option.displayName,
+                selected: vm.sortBy == option,
+                onTap: () {
+                  vm.setSortBy(option);
+                  Navigator.of(context).pop();
+                },
+                onSurface: onSurface,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _radioTile({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required Color onSurface,
+  }) {
+    final accent = AppColorScheme.accent;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder.copyWith(
+                    color: selected ? accent : onSurface.withValues(alpha: 0.5),
+                    width: 2,
+                  ),
+                ),
+                color: selected ? accent : Colors.transparent,
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: onSurface,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: selected ? onSurface : onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
