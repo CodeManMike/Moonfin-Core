@@ -57,6 +57,7 @@ import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/playback/player_loading_overlay.dart';
 import '../../widgets/playback/skip_segment_overlay.dart';
 import '../../widgets/playback/next_up_overlay.dart';
+import '../../widgets/playback/sleep_timer_indicator.dart';
 import '../../widgets/playback/sleep_timer_picker_dialog.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
 import '../../widgets/playback/stream_info_dialog.dart';
@@ -3399,6 +3400,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                       _buildDoubleTapSkipOverlay(),
                     if (_isOsdLocked && !hideOsdForPreroll)
                       _buildLockedOverlay(),
+                    if (_sleepTimerActive && _sleepTimerLabel != null)
+                      Positioned(
+                        right: 24,
+                        bottom: 180,
+                        child: SleepTimerIndicator(
+                          label: _sleepTimerLabel!,
+                          onCancel: () {
+                            unawaited(_cancelSleepTimer());
+                          },
+                        ),
+                      ),
                     if (_skipSegment != null)
                       SkipSegmentOverlay(
                         segment: _skipSegment!,
