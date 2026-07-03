@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/gestures.dart' show kBackMouseButton, kForwardMouseButton;
 import 'package:flutter/cupertino.dart' show CupertinoTheme, CupertinoThemeData;
 import 'package:flutter/material.dart';
@@ -45,6 +45,14 @@ import 'package:moonfin_design/moonfin_design.dart';
 import 'util/focus/key_event_utils.dart';
 import 'ui/widgets/focus/request_initial_focus.dart';
 import 'package:custom_tv_text_field/custom_tv_text_field.dart';
+
+/// True when the global TV downscale ([_TvUiScale]) should wrap the app
+/// shell. Previously gated to [PlatformDetection.isAppleTV] only, which
+/// meant Android TV (and Tizen) never got the downscale and rendered
+/// oversized, desktop-density cards on a 10-foot display. [PlatformDetection.isTV]
+/// covers Apple TV, Android TV, and Tizen.
+@visibleForTesting
+bool shouldApplyTvUiScale() => PlatformDetection.isTV;
 
 class MoonfinApp extends StatefulWidget {
   const MoonfinApp({super.key});
@@ -226,7 +234,7 @@ class _MoonfinAppState extends State<MoonfinApp> {
                   ],
                 );
 
-                final mainChild = PlatformDetection.isAppleTV
+                final mainChild = shouldApplyTvUiScale()
                     ? _TvUiScale(child: overlay)
                     : overlay;
 
