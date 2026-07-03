@@ -8613,8 +8613,19 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String sleepTimerActive(String time) {
-    return 'Sleeping in $time';
+  String sleepTimerActiveDuration(int minutes) {
+    return 'Sleeping in $minutes min';
+  }
+
+  @override
+  String sleepTimerActiveEpisode(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sleeping after $count more episodes',
+      one: 'Sleeping after this episode',
+    );
+    return '$_temp0';
   }
 
   @override

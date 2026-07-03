@@ -7852,12 +7852,21 @@
       }
     }
   },
-  "sleepTimerActive": "Sleeping in {time}",
-  "@sleepTimerActive": {
-    "description": "Label shown in the active sleep timer indicator, with a countdown/description of when playback will stop",
+  "sleepTimerActiveDuration": "Sleeping in {minutes} min",
+  "@sleepTimerActiveDuration": {
+    "description": "Label shown in the active sleep timer indicator for a fixed-duration timer",
     "placeholders": {
-      "time": {
-        "type": "String"
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepTimerActiveEpisode": "{count,plural,=1{Sleeping after this episode}other{Sleeping after {count} more episodes}}",
+  "@sleepTimerActiveEpisode": {
+    "description": "Label shown in the active sleep timer indicator for an episode-count timer",
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },

@@ -15268,11 +15268,17 @@ abstract class AppLocalizations {
   /// **'{count,plural,=1{After this episode}other{After {count} more episodes}}'**
   String sleepTimerEpisodeOption(int count);
 
-  /// Label shown in the active sleep timer indicator, with a countdown/description of when playback will stop
+  /// Label shown in the active sleep timer indicator for a fixed-duration timer
   ///
   /// In en, this message translates to:
-  /// **'Sleeping in {time}'**
-  String sleepTimerActive(String time);
+  /// **'Sleeping in {minutes} min'**
+  String sleepTimerActiveDuration(int minutes);
+
+  /// Label shown in the active sleep timer indicator for an episode-count timer
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural,=1{Sleeping after this episode}other{Sleeping after {count} more episodes}}'**
+  String sleepTimerActiveEpisode(int count);
 
   /// Tooltip/label for the affordance that cancels an active sleep timer
   ///
