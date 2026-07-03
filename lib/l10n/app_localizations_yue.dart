@@ -8308,6 +8308,33 @@ class AppLocalizationsYue extends AppLocalizations {
 
   @override
   String get adminControls => 'Admin Controls';
+
+  @override
+  String get sleepTimer => 'Sleep Timer';
+
+  @override
+  String sleepTimerDurationOption(int minutes) {
+    return 'In $minutes minutes';
+  }
+
+  @override
+  String sleepTimerEpisodeOption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'After $count more episodes',
+      one: 'After this episode',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sleepTimerActive(String time) {
+    return 'Sleeping in $time';
+  }
+
+  @override
+  String get sleepTimerCancel => 'Cancel sleep timer';
 }
 
 /// The translations for Yue Chinese Cantonese, as used in China (`yue_CN`).

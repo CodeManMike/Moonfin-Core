@@ -7829,5 +7829,40 @@
   },
   "rewatchPlaylist": "Rewatch Playlist",
   "noSubtitlesFound": "No subtitles found.",
-  "adminControls": "Admin Controls"
+  "adminControls": "Admin Controls",
+  "sleepTimer": "Sleep Timer",
+  "@sleepTimer": {
+    "description": "Title of the sleep timer picker dialog and tooltip for the player's sleep timer button"
+  },
+  "sleepTimerDurationOption": "In {minutes} minutes",
+  "@sleepTimerDurationOption": {
+    "description": "Option label for a fixed-duration sleep timer choice",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepTimerEpisodeOption": "{count,plural,=1{After this episode}other{After {count} more episodes}}",
+  "@sleepTimerEpisodeOption": {
+    "description": "Option label for an episode-count-based sleep timer choice",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepTimerActive": "Sleeping in {time}",
+  "@sleepTimerActive": {
+    "description": "Label shown in the active sleep timer indicator, with a countdown/description of when playback will stop",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepTimerCancel": "Cancel sleep timer",
+  "@sleepTimerCancel": {
+    "description": "Tooltip/label for the affordance that cancels an active sleep timer"
+  }
 }

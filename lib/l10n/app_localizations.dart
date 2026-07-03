@@ -15249,6 +15249,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Admin Controls'**
   String get adminControls;
+
+  /// Title of the sleep timer picker dialog and tooltip for the player's sleep timer button
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep Timer'**
+  String get sleepTimer;
+
+  /// Option label for a fixed-duration sleep timer choice
+  ///
+  /// In en, this message translates to:
+  /// **'In {minutes} minutes'**
+  String sleepTimerDurationOption(int minutes);
+
+  /// Option label for an episode-count-based sleep timer choice
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural,=1{After this episode}other{After {count} more episodes}}'**
+  String sleepTimerEpisodeOption(int count);
+
+  /// Label shown in the active sleep timer indicator, with a countdown/description of when playback will stop
+  ///
+  /// In en, this message translates to:
+  /// **'Sleeping in {time}'**
+  String sleepTimerActive(String time);
+
+  /// Tooltip/label for the affordance that cancels an active sleep timer
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel sleep timer'**
+  String get sleepTimerCancel;
 }
 
 class _AppLocalizationsDelegate
