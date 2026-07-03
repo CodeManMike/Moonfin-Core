@@ -57,6 +57,7 @@ import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/playback/player_loading_overlay.dart';
 import '../../widgets/playback/skip_segment_overlay.dart';
 import '../../widgets/playback/next_up_overlay.dart';
+import '../../widgets/playback/sleep_timer_picker_dialog.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
 import '../../widgets/playback/stream_info_dialog.dart';
 import '../../widgets/syncplay/syncplay_player_button.dart';
@@ -176,6 +177,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _showNextUp = false;
   AggregatedItem? _nextUpItem;
   bool _nextUpDismissed = false;
+  bool _sleepTimerActive = false;
+  SleepTimerResult? _sleepTimerResult;
   bool _isNextUpAdvancing = false;
   int _consecutiveEpisodes = 0;
   StreamSubscription? _positionSub;
@@ -6166,6 +6169,65 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _manager.seekTo(Duration(microseconds: ticks ~/ 10));
     }());
     _showControls();
+  }
+
+  String? get _sleepTimerLabel {
+    final result = _sleepTimerResult;
+    if (result == null) return null;
+    final l10n = AppLocalizations.of(context);
+    switch (result.type) {
+      case SleepTimerType.duration:
+        return l10n.sleepTimerActiveDuration(result.value);
+      case SleepTimerType.episode:
+        return l10n.sleepTimerActiveEpisode(result.value);
+    }
+  }
+
+  Future<void> _showSleepTimerPicker() async {
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return;
+    final api = _clientForItem(item).jellysleepApi;
+    if (api == null) return;
+
+    final result = await SleepTimerPickerDialog.show(
+      context,
+      isEpisodicContent: item.type == 'Episode',
+    );
+    _suppressBackNavigation();
+    if (result == null || !mounted) return;
+
+    try {
+      await api.startTimer(
+        type: result.type == SleepTimerType.duration ? 'duration' : 'episode',
+        duration: result.value,
+      );
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _sleepTimerActive = true;
+      _sleepTimerResult = result;
+    });
+    _showControls();
+  }
+
+  Future<void> _cancelSleepTimer() async {
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return;
+    final api = _clientForItem(item).jellysleepApi;
+    if (api == null) return;
+
+    try {
+      await api.cancelTimer();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _sleepTimerActive = false;
+      _sleepTimerResult = null;
+    });
   }
 
   bool _hasCastCrew(dynamic item) {
