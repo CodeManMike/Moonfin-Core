@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:server_core/server_core.dart' hide JellysleepApi;
+import 'package:server_core/server_core.dart';
 
 import 'api/jellyfin_auth_api.dart';
 import 'api/jellyfin_items_api.dart';
@@ -191,7 +191,7 @@ class JellyfinMediaServerClient extends MediaServerClient {
   late final ClientLogApi clientLogApi = JellyfinClientLogApi(_dio);
 
   @override
-  late final JellysleepApi jellysleepApi = JellysleepApi(_dio);
+  late final JellysleepApi jellysleepApi = JellyfinJellysleepApi(_dio);
 
   @override
   void dispose() {

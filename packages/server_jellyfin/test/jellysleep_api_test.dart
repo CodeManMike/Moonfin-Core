@@ -36,13 +36,13 @@ ResponseBody _status(int code) => ResponseBody.fromString('', code);
 void main() {
   late Dio dio;
   late _RecordingAdapter adapter;
-  late JellysleepApi api;
+  late JellyfinJellysleepApi api;
 
   setUp(() {
     dio = Dio(BaseOptions(baseUrl: 'https://host'));
     adapter = _RecordingAdapter((_) => _status(204));
     dio.httpClientAdapter = adapter;
-    api = JellysleepApi(dio);
+    api = JellyfinJellysleepApi(dio);
   });
 
   group('startTimer', () {
@@ -76,6 +76,20 @@ void main() {
       expect(
         adapter.lastRequest!.uri.toString(),
         'https://host/Plugin/Jellysleep/CancelTimer',
+      );
+    });
+  });
+
+  group('failure responses', () {
+    test('throws DioException when the server responds with 404', () async {
+      final failingDio = Dio(BaseOptions(baseUrl: 'https://host'));
+      final failingAdapter = _RecordingAdapter((_) => _status(404));
+      failingDio.httpClientAdapter = failingAdapter;
+      final failingApi = JellyfinJellysleepApi(failingDio);
+
+      expect(
+        () => failingApi.startTimer(type: 'duration', duration: 30),
+        throwsA(isA<DioException>()),
       );
     });
   });

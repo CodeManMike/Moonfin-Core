@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:server_core/server_core.dart' as core;
+import 'package:server_core/server_core.dart';
 
 /// Client for the third-party Jellysleep Jellyfin plugin's REST API.
 ///
@@ -7,10 +7,10 @@ import 'package:server_core/server_core.dart' as core;
 /// plugin route (`/Plugin/Jellysleep/*`) and is reached with the same
 /// authenticated [Dio] instance used for all other Jellyfin API calls —
 /// no Moonfin server-plugin proxy is involved.
-class JellysleepApi implements core.JellysleepApi {
+class JellyfinJellysleepApi implements JellysleepApi {
   final Dio _dio;
 
-  JellysleepApi(this._dio);
+  JellyfinJellysleepApi(this._dio);
 
   /// Starts a sleep timer.
   ///
