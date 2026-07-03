@@ -24,6 +24,7 @@ import 'api/admin_backup_api.dart';
 import 'api/admin_live_tv_api.dart';
 import 'api/admin_items_api.dart';
 import 'api/client_log_api.dart';
+import 'api/jellysleep_api.dart';
 import 'api/syncplay_api.dart';
 
 abstract class MediaServerClient {
@@ -71,6 +72,11 @@ abstract class MediaServerClient {
   /// as reports. Returns null on servers that don't support it (Emby, or
   /// Jellyfin with client log upload disabled).
   ClientLogApi? get clientLogApi => null;
+
+  /// Optional client for the third-party Jellysleep plugin's sleep-timer
+  /// REST API. Returns null on servers where the Jellysleep plugin isn't
+  /// installed/supported (Emby, or a Jellyfin server without the plugin).
+  JellysleepApi? get jellysleepApi => null;
 
   void dispose();
 }
