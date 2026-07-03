@@ -98,6 +98,42 @@ void main() {
   );
 
   testWidgets(
+    'returns an episode-type result when an episode option is tapped',
+    (tester) async {
+      await _registerPrefs();
+      addTearDown(() => GetIt.instance.unregister<UserPreferences>());
+
+      SleepTimerResult? result;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await SleepTimerPickerDialog.show(
+                  context,
+                  isEpisodicContent: true,
+                );
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('After 2 more episodes'));
+      await tester.pumpAndSettle();
+
+      expect(result, isNotNull);
+      expect(result!.type, SleepTimerType.episode);
+      expect(result!.value, 2);
+    },
+  );
+
+  testWidgets(
     'shows episode-count options only for episodic content',
     (tester) async {
       await _pumpDialog(tester, isEpisodicContent: true);
