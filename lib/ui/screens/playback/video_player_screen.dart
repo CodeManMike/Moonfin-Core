@@ -4742,6 +4742,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   : l10n.playerTooltipLockLandscape,
             ),
           _controlButton(
+            _sleepTimerActive ? Icons.bedtime : Icons.bedtime_outlined,
+            onPressed: _sleepTimerActive
+                ? _cancelSleepTimer
+                : () {
+                    unawaited(_showSleepTimerPicker());
+                  },
+            size: secondaryIconSize,
+            extent: secondaryExtent,
+            tooltip: _sleepTimerActive
+                ? l10n.sleepTimerCancel
+                : l10n.sleepTimer,
+            iconColor: _sleepTimerActive ? AppColorScheme.accent : Colors.white,
+          ),
+          _controlButton(
             Icons.info_outline_rounded,
             onPressed: _showStreamInfo,
             size: secondaryIconSize,
