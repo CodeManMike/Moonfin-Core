@@ -58,5 +58,25 @@ void main() {
       expect(body['type'], 'duration');
       expect(body['duration'], 30);
     });
+
+    test('posts episode type and count to StartTimer', () async {
+      await api.startTimer(type: 'episode', duration: 2);
+
+      final body = jsonDecode(adapter.lastRequestBody!) as Map;
+      expect(body['type'], 'episode');
+      expect(body['duration'], 2);
+    });
+  });
+
+  group('cancelTimer', () {
+    test('posts to CancelTimer with no body', () async {
+      await api.cancelTimer();
+
+      expect(adapter.lastRequest!.method, 'POST');
+      expect(
+        adapter.lastRequest!.uri.toString(),
+        'https://host/Plugin/Jellysleep/CancelTimer',
+      );
+    });
   });
 }
