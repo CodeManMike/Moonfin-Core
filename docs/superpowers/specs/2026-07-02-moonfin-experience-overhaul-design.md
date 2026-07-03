@@ -40,6 +40,12 @@ Every item below is native Flutter UI backed by a real, documented REST API (the
 
 **Fix** (client, decided approach): flip the gate at `lib\app.dart:229` from `isAppleTV` to `isTV` so Android TV gets the same global downscale. Follow-up pass required after: audit every screen currently applying the separate 0.8x `platformScale` band-aid (home, detail) to make sure the two scale factors don't stack into overly-cramped cards once the global downscale also applies — reconcile to one consistent scale source.
 
+### Status: all four §1 items implemented and reviewed (2026-07-02)
+
+See `docs/superpowers/plans/2026-07-02-bug-fixes-and-tv-scaling.md` for the full task-by-task record. Summary: §1.1 and §1.2 shipped clean; §1.3 required a follow-up commit after code review found the original fix only added persistence plumbing with no UI ever able to trigger it (closed in `aab77d47`); §1.4 shipped clean with an audit confirming no further code change needed. Final whole-plan review: 138/138 tests passing (`E:\Moonfin-Core`), 0 warnings/errors (`E:\Moonfin_Plugin`).
+
+**New follow-up discovered during §1.3's sibling-file audit, not yet scheduled**: the same "hardcoded sort literal, no way for a user to change it" bug exists in `lib\data\viewmodels\book_browse_view_model.dart:101`, `item_detail_view_model.dart:769`, `library_view_view_model.dart:132,136`, and `live_tv_guide_view_model.dart:301`. These were confirmed out of scope for §1.3 (only `folder_browse_view_model.dart` was named in this spec), but the same class of bug likely applies to at least the browsable ones (`book_browse_view_model.dart`, `live_tv_guide_view_model.dart` — the other two are fixed-purpose row builders/internal lookups, not user-facing sortable screens). Worth its own small plan later so it isn't rediscovered as a "new" bug report.
+
 ---
 
 ## 2. Home Screen Sections (HSS) real API integration
