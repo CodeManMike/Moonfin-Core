@@ -6203,6 +6203,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final api = _clientForItem(item).jellysleepApi;
     if (api == null) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     final result = await SleepTimerPickerDialog.show(
       context,
       isEpisodicContent: item.type == 'Episode',
@@ -6216,6 +6217,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         duration: result.value,
       );
     } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).sleepTimerStartError),
+        ),
+      );
       return;
     }
     if (!mounted) return;
@@ -6232,9 +6239,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     final api = _clientForItem(item).jellysleepApi;
     if (api == null) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await api.cancelTimer();
     } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).sleepTimerCancelError),
+        ),
+      );
       return;
     }
     if (!mounted) return;

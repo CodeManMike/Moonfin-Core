@@ -8563,6 +8563,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepTimerCancel => 'Cancel sleep timer';
+
+  @override
+  String get sleepTimerStartError => 'Couldn\'t set sleep timer';
+
+  @override
+  String get sleepTimerCancelError => 'Couldn\'t cancel sleep timer';
 }
 
 /// The translations for English, as used in the United Kingdom (`en_GB`).
