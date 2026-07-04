@@ -30,6 +30,7 @@ import '../../../widgets/top_toolbar.dart';
 import '../../../../data/repositories/seerr_repository.dart';
 import '../../../../data/services/seerr/seerr_api_models.dart';
 import '../../../../data/services/plugin_sync_service.dart';
+import '../seerr_series_request_support.dart';
 import '../item_detail_screen.dart'
     show
         DetailActionButtons,
@@ -138,6 +139,8 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
   int? _loadedSubtitleIndex;
   List<SeerrDiscoverItem>? _seerrAppearances;
   List<SeerrDiscoverItem>? _seerrCrewCredits;
+  SeerrTvDetails? _resolvedSeerrTv;
+  String? _resolvedSeerrTvForItemId;
   String? _randomBackdropUrl;
 
   PlaybackInfoResult? _playbackInfo;
@@ -275,6 +278,45 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       }
     } catch (e) {
       debugPrint('Error loading Seerr appearances: $e');
+    }
+  }
+
+  Future<void> _loadSeerrSeriesResolution() async {
+    final item = _vm.item;
+    if (item == null || item.type != 'Series') return;
+    if (_resolvedSeerrTvForItemId == item.id) return;
+
+    final seerrAvailable = GetIt.instance<PluginSyncService>().seerrAvailable;
+    if (!seerrAvailable) {
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = null;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
+      return;
+    }
+
+    try {
+      final repo = await GetIt.instance.getAsync<SeerrRepository>();
+      final resolved = await resolveSeriesForSeerrRequest(
+        item: item,
+        seerrAvailable: true,
+        repository: repo,
+      );
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = resolved;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = null;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
     }
   }
 
@@ -480,6 +522,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _loadSeerrAppearances().then((_) {
       if (mounted) _selectRandomBackdrop();
     });
+    _loadSeerrSeriesResolution();
   }
 
   @override
@@ -494,6 +537,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
     _loadSeerrAppearances().then((_) {
       if (mounted) _selectRandomBackdrop();
     });
+    _loadSeerrSeriesResolution();
   }
 
   void _onScroll() {
@@ -516,6 +560,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
       _loadSeerrAppearances().then((_) {
         if (mounted) _selectRandomBackdrop();
       });
+      _loadSeerrSeriesResolution();
     }
   }
 
@@ -2957,6 +3002,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               itemId: item.id,
               selectedMediaSourceId: widget.selectedMediaSourceId,
               onSelectedMediaSourceChanged: widget.onSelectedMediaSourceChanged,
+              resolvedSeerrTv: _resolvedSeerrTv,
               tvPlayFocusNode: widget.initialFocusNode,
               downTarget: _tabNode(_selectedTab >= 0 ? _selectedTab : 0),
               upTarget: _overviewFocusNode,
@@ -3135,6 +3181,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
               itemId: item.id,
               selectedMediaSourceId: widget.selectedMediaSourceId,
               onSelectedMediaSourceChanged: widget.onSelectedMediaSourceChanged,
+              resolvedSeerrTv: _resolvedSeerrTv,
               tvPlayFocusNode: widget.initialFocusNode,
               downTarget: _vm.tracks.isNotEmpty
                   ? _trackFocusNodes.putIfAbsent(_vm.tracks.first.id, () => FocusNode())
@@ -3395,6 +3442,7 @@ class _ModernDetailContentState extends State<ModernDetailContent> {
             itemId: item.id,
             selectedMediaSourceId: widget.selectedMediaSourceId,
             onSelectedMediaSourceChanged: widget.onSelectedMediaSourceChanged,
+              resolvedSeerrTv: _resolvedSeerrTv,
             tvPlayFocusNode: widget.initialFocusNode,
             downTarget: _tabNode(_selectedTab >= 0 ? _selectedTab : 0),
             upTarget: _overviewFocusNode,
