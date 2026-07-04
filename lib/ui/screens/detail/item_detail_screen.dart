@@ -28,6 +28,7 @@ import '../../../data/viewmodels/item_detail_view_model.dart';
 import '../../../data/services/plugin_sync_service.dart';
 import '../../navigation/route_lifecycle_observer.dart';
 import 'modern/modern_detail_content.dart';
+import 'seerr_series_request_support.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
 import '../../../data/viewmodels/seerr_media_detail_view_model.dart';
@@ -575,6 +576,48 @@ class _DetailContentState extends State<_DetailContent> {
   String? _tvAlbumPlayFocusAppliedForItemId;
   List<SeerrDiscoverItem>? _seerrAppearances;
   List<SeerrDiscoverItem>? _seerrCrewCredits;
+  SeerrTvDetails? _resolvedSeerrTv;
+  String? _resolvedSeerrTvForItemId;
+
+  Future<void> _loadSeerrSeriesResolution() async {
+    final item = widget.viewModel.item;
+    if (item == null || item.type != 'Series') return;
+    if (_resolvedSeerrTvForItemId == item.id) return;
+
+    final seerrAvailable = GetIt.instance<PluginSyncService>().seerrAvailable;
+    if (!seerrAvailable) {
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = null;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
+      return;
+    }
+
+    try {
+      final repo = await GetIt.instance.getAsync<SeerrRepository>();
+      final resolved = await resolveSeriesForSeerrRequest(
+        item: item,
+        seerrAvailable: true,
+        repository: repo,
+      );
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = resolved;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error resolving series for Seerr request: $e');
+      if (mounted) {
+        setState(() {
+          _resolvedSeerrTv = null;
+          _resolvedSeerrTvForItemId = item.id;
+        });
+      }
+    }
+  }
 
   Future<void> _loadSeerrAppearances() async {
     final item = widget.viewModel.item;
@@ -915,6 +958,7 @@ class _DetailContentState extends State<_DetailContent> {
     _contentFocusNode = FocusNode(debugLabel: 'detailContent');
     widget.prefs.addListener(_onPrefsChanged);
     _loadSeerrAppearances();
+    _loadSeerrSeriesResolution();
   }
 
   void _onPrefsChanged() {
@@ -931,6 +975,7 @@ class _DetailContentState extends State<_DetailContent> {
       _sectionScrollControllers.clear();
       _pendingSectionFocusRetries.clear();
       _loadSeerrAppearances();
+      _loadSeerrSeriesResolution();
     }
   }
 
@@ -1275,6 +1320,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: _sectionFocusNode('detailActionButtons'),
         upTarget: _headerOverviewFocusNode(item),
         onRequestFocus: _requestSectionFocus,
@@ -1483,6 +1529,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: actionButtonsFocusNode,
         downTarget: overviewFocusNode,
         onRequestFocus: _requestSectionFocus,
@@ -1615,6 +1662,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: actionButtonsFocusNode,
         upTarget: overviewFocusNode,
         onRequestFocus: _requestSectionFocus,
@@ -1760,6 +1808,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: actionButtonsFocusNode,
         upTarget: overviewFocusNode,
         onRequestFocus: _requestSectionFocus,
@@ -1944,6 +1993,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: _sectionFocusNode('detailActionButtons'),
         upTarget: _headerOverviewFocusNode(item),
         onRequestFocus: _requestSectionFocus,
@@ -2027,6 +2077,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: actionButtonsFocusNode,
         upTarget: overviewFocusNode,
         onRequestFocus: _requestSectionFocus,
@@ -3234,6 +3285,7 @@ class _DetailContentState extends State<_DetailContent> {
         itemId: viewModel.item?.id,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
+        resolvedSeerrTv: _resolvedSeerrTv,
         tvPlayFocusNode: actionButtonsFocusNode,
         onRequestFocus: _requestSectionFocus,
         downTarget: metadataFocusNode ?? boxSetDownTarget,
