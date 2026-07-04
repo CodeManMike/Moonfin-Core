@@ -31,7 +31,9 @@ enum HomeSectionPluginSource {
 
   playlists('playlists'),
 
-  custom('custom');
+  custom('custom'),
+
+  homeScreenSections('homeScreenSections');
 
   const HomeSectionPluginSource(this.serializedName);
   final String serializedName;
