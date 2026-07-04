@@ -160,6 +160,24 @@ abstract class ItemsApi {
 
   Future<Map<String, dynamic>> getLyrics(String itemId);
 
+  /// Discovers available Home Screen Sections plugin rows for the current
+  /// user. Returns the raw list of section descriptors (each with `route`,
+  /// `displayText`, `additionalData`) as reported by the HSS plugin. Throws
+  /// a [DioException] with a 404 status if the HSS plugin is not installed
+  /// on the server; callers are expected to catch that and degrade
+  /// gracefully to "no dynamic HSS sections available".
+  Future<List<Map<String, dynamic>>> getHomeScreenSections();
+
+  /// Fetches the items for a single Home Screen Sections plugin row
+  /// identified by [sectionType] (the `route` value from
+  /// [getHomeScreenSections]). Returns a standard Jellyfin
+  /// `QueryResult<BaseItemDto>` shape (`Items`/`TotalRecordCount`), the same
+  /// shape returned by `getItems`.
+  Future<Map<String, dynamic>> getHomeScreenSectionItems(
+    String sectionType, {
+    String? additionalData,
+  });
+
   Future<List<Map<String, dynamic>>> getLocalTrailers(String itemId);
 
   Future<List<Map<String, dynamic>>> getIntros(String itemId);

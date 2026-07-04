@@ -533,6 +533,41 @@ class JellyfinItemsApi implements ItemsApi {
     return response.data as Map<String, dynamic>;
   }
 
+  @override
+  Future<List<Map<String, dynamic>>> getHomeScreenSections() async {
+    final userId = _getUserId();
+    final response = await _dio.get(
+      '/HomeScreen/Sections',
+      queryParameters: {'userId': userId},
+    );
+    final data = response.data;
+    if (data is List) {
+      return data
+          .whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList(growable: false);
+    }
+    return const [];
+  }
+
+  @override
+  Future<Map<String, dynamic>> getHomeScreenSectionItems(
+    String sectionType, {
+    String? additionalData,
+  }) async {
+    final userId = _getUserId();
+    final response = await _dio.get(
+      '/HomeScreen/Section/$sectionType',
+      queryParameters: {
+        'userId': userId,
+        'additionalData': ?additionalData,
+      },
+    );
+    final data = response.data;
+    if (data is List) return {'Items': data, 'TotalRecordCount': data.length};
+    return data as Map<String, dynamic>;
+  }
+
   List<Map<String, dynamic>> _parseItemListResponse(dynamic data) {
     if (data is List) return data.cast<Map<String, dynamic>>();
     if (data is Map<String, dynamic>) {
