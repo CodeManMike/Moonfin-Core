@@ -386,6 +386,19 @@ class SeerrRepository {
     (c) async => SeerrTvDetails.fromJson(await c.getTvDetailsByTvdb(tvdbId)),
   );
 
+  /// Resolves a Jellyfin series' TVDB id to its Seerr/TMDB identity, e.g. to
+  /// open a season-request sheet from a real library series detail screen.
+  /// Returns null (instead of throwing) if Seerr is unavailable, the lookup
+  /// fails, or the series isn't known to Seerr yet, so callers can hide the
+  /// "Request on Seerr" affordance gracefully.
+  Future<SeerrTvDetails?> resolveTvdbToSeerrTv(int tvdbId) async {
+    try {
+      return await getTvDetailsByTvdb(tvdbId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<SeerrDiscoverPage> getSimilarMovies(int tmdbId, {int page = 1}) =>
       _withClient(
         (c) async => SeerrDiscoverPage.fromJson(
