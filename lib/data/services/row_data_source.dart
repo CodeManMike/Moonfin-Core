@@ -1605,6 +1605,43 @@ class RowDataSource {
             rowType: HomeRowType.pluginDynamic,
           );
         }
+      case HomeSectionPluginSource.homeScreenSections:
+        try {
+          final response = await _client.itemsApi.getHomeScreenSectionItems(
+            section,
+            additionalData: additionalData,
+          );
+          final items = _parseItems(response, serverId);
+          return HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+            items: items,
+          );
+        } on DioException catch (e) {
+          final statusCode = e.response?.statusCode ?? 0;
+          if (statusCode == 404) {
+            // HSS plugin not installed on this server. Degrade gracefully.
+            return HomeRow(
+              id: rowId,
+              title: title,
+              rowType: HomeRowType.pluginDynamic,
+            );
+          }
+          debugPrint('[RowDataSource] Failed to load HSS section "$section": $e');
+          return HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+          );
+        } catch (e) {
+          debugPrint('[RowDataSource] Failed to load HSS section "$section": $e');
+          return HomeRow(
+            id: rowId,
+            title: title,
+            rowType: HomeRowType.pluginDynamic,
+          );
+        }
     }
   }
 
