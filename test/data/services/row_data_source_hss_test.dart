@@ -70,6 +70,32 @@ void main() {
       expect(row.rowType, HomeRowType.pluginDynamic);
     });
   });
+
+  group('RowDataSource.filterDiscoverableHomeScreenSections', () {
+    test('excludes the Discover route and keeps library-backed routes', () {
+      final raw = [
+        {'route': 'BecauseYouWatched', 'displayText': 'Because You Watched', 'additionalData': ''},
+        {'route': 'Discover', 'displayText': 'Discover', 'additionalData': ''},
+        {'route': 'WatchAgain', 'displayText': 'Watch Again', 'additionalData': ''},
+      ];
+
+      final filtered = RowDataSource.filterDiscoverableHomeScreenSections(raw);
+
+      expect(filtered, hasLength(2));
+      expect(filtered.map((e) => e['route']), containsAll(['BecauseYouWatched', 'WatchAgain']));
+      expect(filtered.any((e) => e['route'] == 'Discover'), isFalse);
+    });
+
+    test('is case-insensitive on the route value', () {
+      final raw = [
+        {'route': 'discover', 'displayText': 'discover lowercase', 'additionalData': ''},
+      ];
+
+      final filtered = RowDataSource.filterDiscoverableHomeScreenSections(raw);
+
+      expect(filtered, isEmpty);
+    });
+  });
 }
 
 class RequestOptionsStub extends dio_pkg.RequestOptions {

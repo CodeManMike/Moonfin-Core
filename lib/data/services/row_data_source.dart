@@ -74,6 +74,23 @@ class RowDataSource {
 
   RowDataSource(this._client);
 
+  /// HSS's "Discover" section type proxies a Jellyseerr-style discovery
+  /// request and can return non-standard items outside the normal
+  /// `BaseItemDto` shape `_parseItems` expects. Moonfin already has native
+  /// Seerr discover screens covering that use case, so it is excluded here;
+  /// only library-backed HSS section types (Because You Watched, Watch
+  /// Again, Genre, Latest Movies/Shows, etc.) are surfaced.
+  static const _excludedHomeScreenSectionRoutes = {'discover'};
+
+  static List<Map<String, dynamic>> filterDiscoverableHomeScreenSections(
+    List<Map<String, dynamic>> sections,
+  ) {
+    return sections.where((section) {
+      final route = section['route']?.toString().toLowerCase() ?? '';
+      return !_excludedHomeScreenSectionRoutes.contains(route);
+    }).toList(growable: false);
+  }
+
   ImageApi get imageApi => _client.imageApi;
   AppLocalizations get _l10n => currentAppLocalizations();
 
