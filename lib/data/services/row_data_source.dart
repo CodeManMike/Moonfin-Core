@@ -331,6 +331,29 @@ class RowDataSource {
     );
   }
 
+  Future<HomeRow> loadAcdbCollections(
+    String serverId, {
+    required String tag,
+    String sortBy = _defaultSortBy,
+    String sortOrder = _defaultSortOrder,
+  }) async {
+    final response = await _getItemsWithFallback(
+      includeItemTypes: const ['BoxSet'],
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      recursive: true,
+      limit: _defaultLimit,
+      tags: [tag],
+    );
+    return _buildRow(
+      id: 'acdbCollections',
+      title: 'ACdb Collections',
+      response: response,
+      serverId: serverId,
+      rowType: HomeRowType.collections,
+    );
+  }
+
   Future<HomeRow> loadAudioArtists(
     String serverId, {
     String sortBy = _defaultSortBy,
@@ -1168,6 +1191,7 @@ class RowDataSource {
     int? limit,
     bool? isFavorite,
     String? fields,
+    List<String>? tags,
   }) async {
     if (_isAccessDenied(parentId)) {
       return const <String, dynamic>{'Items': <dynamic>[], 'TotalRecordCount': 0};
@@ -1188,6 +1212,7 @@ class RowDataSource {
         fields: fields ?? _fields,
         enableImageTypes: _imageTypes,
         imageTypeLimit: _imageTypeLimit,
+        tags: tags,
       );
       return response;
     } on DioException catch (e) {
@@ -1215,6 +1240,7 @@ class RowDataSource {
         enableImageTypes: _imageTypes,
         imageTypeLimit: _imageTypeLimit,
         enableTotalRecordCount: false,
+        tags: tags,
       );
       return response;
     }
