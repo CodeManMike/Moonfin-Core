@@ -7,21 +7,19 @@ import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart' hide ImageType;
 
 import '../../../data/services/background_service.dart';
-import '../../../preference/preference_constants.dart';
-import '../../../preference/user_preferences.dart';
+import '../../../data/services/row_data_source.dart';
 import '../../../util/platform_detection.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/focus/request_initial_focus.dart';
 import '../../widgets/fullscreen_backdrop_switcher.dart';
-import '../../widgets/genre_grid_card.dart';
+import '../../widgets/genre_items_panel.dart';
+import '../../widgets/genre_name_list_tile.dart';
 import '../../../l10n/app_localizations.dart';
 
 Color get _navyBackground => AppColorScheme.background;
 const _horizontalPadding = 60.0;
 const _mobileHorizontalPadding = 16.0;
 const _kCompactBreakpoint = 600.0;
-const _initialArtworkBatch = 12;
-const _backgroundArtworkConcurrency = 6;
 
 bool _isCompact(BuildContext context) =>
     PlatformDetection.useMobileUi ||
@@ -38,22 +36,18 @@ class LibraryGenresScreen extends StatefulWidget {
 
 class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
   final _client = GetIt.instance<MediaServerClient>();
-  final _prefs = GetIt.instance<UserPreferences>();
+  final _dataSource = GetIt.instance<RowDataSource>();
   final _backgroundService = GetIt.instance<BackgroundService>();
   StreamSubscription<String?>? _backgroundSub;
   String? _backdropUrl;
 
-  List<GenreCardData> _genres = [];
+  List<GenreListItem> _genres = [];
   bool _isLoading = true;
   String _libraryName = '';
   String? _collectionType;
+  GenreListItem? _selectedGenre;
 
   bool _disposed = false;
-
-  ImageType get _imageType =>
-      _prefs.get(UserPreferences.libraryImageType(widget.libraryId));
-
-  PosterSize get _posterSize => _prefs.resolveLibraryPosterSize();
 
   @override
   void initState() {
@@ -89,245 +83,43 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
       );
 
       final items = (response['Items'] as List?) ?? [];
-      _genres = items.map((g) {
-        final data = g as Map<String, dynamic>;
-        return GenreCardData(
-          id: data['Id']?.toString() ?? '',
-          name: data['Name'] as String? ?? '',
-          itemCount:
-              data['ChildCount'] as int? ??
-              (data['MovieCount'] as int? ?? 0) +
-                  (data['SeriesCount'] as int? ?? 0) +
-                  (data['AlbumCount'] as int? ?? 0) +
-                  (data['SongCount'] as int? ?? 0) +
-                  (data['ArtistCount'] as int? ?? 0) +
-                  (data['MusicVideoCount'] as int? ?? 0),
-        );
-      }).where((genre) {
-        if (_collectionType == 'music') return true;
-        return genre.itemCount > 0;
-      }).toList();
+      _genres = items
+          .map((g) {
+            final data = g as Map<String, dynamic>;
+            final itemCount =
+                data['ChildCount'] as int? ??
+                (data['MovieCount'] as int? ?? 0) +
+                    (data['SeriesCount'] as int? ?? 0) +
+                    (data['AlbumCount'] as int? ?? 0) +
+                    (data['SongCount'] as int? ?? 0) +
+                    (data['ArtistCount'] as int? ?? 0) +
+                    (data['MusicVideoCount'] as int? ?? 0);
+            return (
+              genre: GenreListItem(
+                id: data['Id']?.toString() ?? '',
+                name: data['Name'] as String? ?? '',
+              ),
+              itemCount: itemCount,
+            );
+          })
+          .where((entry) {
+            if (_collectionType == 'music') return true;
+            return entry.itemCount > 0;
+          })
+          .map((entry) => entry.genre)
+          .toList();
     } catch (_) {}
 
     _isLoading = false;
+    if (_genres.isNotEmpty) {
+      _selectedGenre = _genres.first;
+    }
     if (!_disposed && mounted) setState(() {});
-
-    _loadArtwork();
   }
 
-  Future<void> _loadArtwork() async {
-    final includeType = _includeType;
-    final toLoad = _genres.take(_initialArtworkBatch).toList();
-    await Future.wait(
-      toLoad.map((genre) => _loadGenreArtwork(genre, includeType)),
-    );
-
-    if (!_disposed && _genres.length > _initialArtworkBatch) {
-      final remaining = _genres.skip(_initialArtworkBatch).toList();
-      for (
-        var i = 0;
-        i < remaining.length && !_disposed;
-        i += _backgroundArtworkConcurrency
-      ) {
-        final batch = remaining.skip(i).take(_backgroundArtworkConcurrency);
-        await Future.wait(
-          batch.map((genre) => _loadGenreArtwork(genre, includeType)),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadGenreArtwork(
-    GenreCardData genre,
-    String? includeType,
-  ) async {
-    if (_disposed) return;
-    try {
-      final response = await _client.itemsApi.getItems(
-        parentId: widget.libraryId,
-        genreIds: [genre.id],
-        includeItemTypes: includeType != null
-            ? [includeType]
-            : ['Movie', 'Series'],
-        excludeItemTypes: includeType == null ? ['Episode'] : null,
-        sortBy: 'Random',
-        sortOrder: 'Ascending',
-        recursive: true,
-        limit: 6,
-        fields: 'PrimaryImageTag,ImageTags,BackdropImageTags',
-        enableImageTypes: 'Primary,Backdrop',
-        imageTypeLimit: 1,
-      );
-      final items = (response['Items'] as List?) ?? [];
-
-      final rawTotalCount = response['TotalRecordCount'];
-      final totalCount =
-          rawTotalCount is num ? rawTotalCount.toInt() : items.length;
-      if (totalCount <= 0 || items.isEmpty) {
-        if (_genres.remove(genre) && !_disposed && mounted) {
-          setState(() {});
-        }
-        return;
-      }
-
-      if (_collectionType == 'music') {
-        for (final raw in items) {
-          final item = raw as Map<String, dynamic>;
-          final imageTags = item['ImageTags'];
-          final hasPrimaryTag =
-              item['PrimaryImageTag'] != null ||
-              (imageTags is Map && imageTags['Primary'] != null);
-          if (hasPrimaryTag) {
-            final primaryUrl = _client.imageApi.getPrimaryImageUrl(
-              item['Id']?.toString() ?? '',
-              maxWidth: _genreCardRequestMaxWidth(),
-            );
-            genre.imageUrl = primaryUrl;
-            genre.backdropUrl ??= primaryUrl;
-            if (!_disposed && mounted) setState(() {});
-            return;
-          }
-        }
-
-        if (items.isNotEmpty) {
-          final first = items.first as Map<String, dynamic>;
-          final primaryUrl = _client.imageApi.getPrimaryImageUrl(
-            first['Id']?.toString() ?? '',
-            maxWidth: _genreCardRequestMaxWidth(),
-          );
-          genre.imageUrl = primaryUrl;
-          genre.backdropUrl ??= primaryUrl;
-          if (!_disposed && mounted) setState(() {});
-          return;
-        }
-      }
-
-      String? imageUrl;
-      for (final raw in items) {
-        final item = raw as Map<String, dynamic>;
-        final backdropUrl = _backdropUrlFor(item);
-        genre.backdropUrl ??= backdropUrl;
-        imageUrl ??= _imageUrlFor(item, _imageType, backdropUrl: backdropUrl);
-        if (imageUrl != null && genre.backdropUrl != null) {
-          break;
-        }
-      }
-      genre.imageUrl = imageUrl ?? genre.backdropUrl;
-      if (!_disposed && mounted) setState(() {});
-    } catch (_) {}
-  }
-
-  String? _tagForType(Map<String, dynamic> item, String imageType) {
-    final tags = item['ImageTags'];
-    if (tags is! Map) return null;
-    return tags[imageType] as String?;
-  }
-
-  String? _backdropUrlFor(Map<String, dynamic> item) {
-    final tags = (item['BackdropImageTags'] as List?) ?? const [];
-    if (tags.isEmpty) {
-      return null;
-    }
-    return _client.imageApi.getBackdropImageUrl(
-      item['Id']?.toString() ?? '',
-      maxWidth: BackgroundService.backdropMaxWidth,
-      tag: tags.first as String,
-    );
-  }
-
-  String? _imageUrlFor(
-    Map<String, dynamic> item,
-    ImageType imageType, {
-    String? backdropUrl,
-  }) {
-    final itemId = item['Id']?.toString() ?? '';
-    final primaryTag = item['PrimaryImageTag'] as String?;
-    final thumbTag = _tagForType(item, 'Thumb');
-    final bannerTag = _tagForType(item, 'Banner');
-    final maxWidth = _genreCardRequestMaxWidth();
-    final resolvedBackdropUrl = backdropUrl ?? _backdropUrlFor(item);
-
-    return switch (imageType) {
-      ImageType.poster =>
-        primaryTag != null
-            ? _client.imageApi.getPrimaryImageUrl(
-                itemId,
-                tag: primaryTag,
-                maxWidth: maxWidth,
-              )
-            : thumbTag != null
-            ? _client.imageApi.getThumbImageUrl(
-                itemId,
-                tag: thumbTag,
-                maxWidth: maxWidth,
-              )
-            : resolvedBackdropUrl,
-      ImageType.thumb =>
-        thumbTag != null
-            ? _client.imageApi.getThumbImageUrl(
-                itemId,
-                tag: thumbTag,
-                maxWidth: maxWidth,
-              )
-            : resolvedBackdropUrl ??
-                  (primaryTag != null
-                      ? _client.imageApi.getPrimaryImageUrl(
-                          itemId,
-                          tag: primaryTag,
-                          maxWidth: maxWidth,
-                        )
-                      : null),
-      ImageType.banner =>
-        bannerTag != null
-            ? _client.imageApi.getBannerImageUrl(
-                itemId,
-                tag: bannerTag,
-                maxWidth: maxWidth,
-              )
-            : resolvedBackdropUrl ??
-                  (primaryTag != null
-                      ? _client.imageApi.getPrimaryImageUrl(
-                          itemId,
-                          tag: primaryTag,
-                          maxWidth: maxWidth,
-                        )
-                      : null),
-    };
-  }
-
-  int _genreCardRequestMaxWidth() {
-    final requestScale = MediaQuery.devicePixelRatioOf(context).clamp(1.0, 2.0);
-    final widthPx = (_cardWidth() * requestScale).round();
-    if (widthPx < 160) return 160;
-    if (widthPx > 720) return 720;
-    return widthPx;
-  }
-
-  double _cardWidth() {
-    final desktopScale = _desktopUiScaleFactor();
-    if (_collectionType == 'music') {
-      return _posterSize.portraitHeight.toDouble() * desktopScale;
-    }
-
-    final posterSize = _posterSize;
-    final baseWidth = switch (_imageType) {
-      ImageType.thumb => posterSize.landscapeHeight * (16 / 9),
-      ImageType.banner => posterSize.landscapeHeight * (16 / 9),
-      ImageType.poster => posterSize.portraitHeight * (2 / 3),
-    };
-    return baseWidth * desktopScale;
-  }
-
-  double _cardAspectRatio() {
-    if (_collectionType == 'music') {
-      return 1.0;
-    }
-
-    return switch (_imageType) {
-      ImageType.thumb => 16 / 9,
-      ImageType.banner => 16 / 9,
-      ImageType.poster => 2 / 3,
-    };
+  void _selectGenre(GenreListItem genre) {
+    if (_selectedGenre?.id == genre.id) return;
+    setState(() => _selectedGenre = genre);
   }
 
   String? get _includeType {
@@ -341,10 +133,6 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
       default:
         return null;
     }
-  }
-
-  double _desktopUiScaleFactor() {
-    return _prefs.get(UserPreferences.desktopUiScale).scaleFactor;
   }
 
   @override
@@ -405,67 +193,52 @@ class _LibraryGenresScreenState extends State<LibraryGenresScreen> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = _isCompact(context);
-        final isMusic = _collectionType == 'music';
-        final desktopScale = _desktopUiScaleFactor();
-        final horizontalPadding = isMobile
-            ? _mobileHorizontalPadding
-            : _horizontalPadding * desktopScale;
-        final spacing = 16.0 * desktopScale;
-        final minColumns = isMobile ? 1 : 2;
-        final maxColumns = isMobile ? 4 : 8;
-        final crossAxisCount =
-            ((constraints.maxWidth - horizontalPadding * 2 + spacing) /
-                    (_cardWidth() + spacing))
-                .floor()
-                .clamp(minColumns, maxColumns);
+    final isMobile = _isCompact(context);
+    final horizontalPadding = isMobile
+        ? _mobileHorizontalPadding
+        : _horizontalPadding;
 
-        return GridView.builder(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            20,
-            horizontalPadding,
-            32,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 280,
+          child: ListView.builder(
+            padding: EdgeInsets.fromLTRB(horizontalPadding, 20, 0, 20),
+            itemCount: _genres.length,
+            itemBuilder: (context, index) {
+              final genre = _genres[index];
+              return GenreNameListTile(
+                genre: genre,
+                selected: _selectedGenre?.id == genre.id,
+                onFocusChange: (focused) {
+                  if (focused) _selectGenre(genre);
+                },
+                onTap: () {
+                  _selectGenre(genre);
+                  context.push(
+                    Destinations.genre(
+                      genre.name,
+                      genreId: genre.id,
+                      parentId: widget.libraryId,
+                      includeType: _includeType,
+                    ),
+                  );
+                },
+              );
+            },
           ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-            childAspectRatio: _cardAspectRatio(),
+        ),
+        Expanded(
+          child: GenreItemsPanel(
+            genreId: _selectedGenre?.id,
+            genreName: _selectedGenre?.name,
+            dataSource: _dataSource,
+            serverId: _client.deviceInfo.id,
+            includeItemTypes: _includeType != null ? [_includeType!] : null,
           ),
-          itemCount: _genres.length,
-          itemBuilder: (context, index) {
-            final genre = _genres[index];
-            return GenreGridCard(
-              genre: genre,
-              cardFocusExpansion: _prefs.get(
-                UserPreferences.cardFocusExpansion,
-              ),
-              centerTitle: isMusic,
-              onTap: () {
-                context.push(
-                  Destinations.genre(
-                    genre.name,
-                    genreId: genre.id,
-                    parentId: widget.libraryId,
-                    includeType: _includeType,
-                  ),
-                );
-              },
-              onHover: isMobile
-                  ? null
-                  : (hovering) {
-                      final backgroundUrl = genre.backdropUrl ?? genre.imageUrl;
-                      if (hovering && backgroundUrl != null) {
-                        _backgroundService.setBackgroundUrl(backgroundUrl);
-                      }
-                    },
-            );
-          },
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -484,13 +257,10 @@ class _GenresHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = _isCompact(context);
-    final desktopScale = GetIt.instance<UserPreferences>()
-        .get(UserPreferences.desktopUiScale)
-        .scaleFactor;
     final topPadding = isMobile ? MediaQuery.of(context).padding.top : 8.0;
     final horizontalPadding = isMobile
         ? _mobileHorizontalPadding
-        : _horizontalPadding * desktopScale;
+        : _horizontalPadding;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
@@ -506,7 +276,7 @@ class _GenresHeader extends StatelessWidget {
               icon: Icon(
                 Icons.home,
                 color: AppColorScheme.onSurface.withValues(alpha: 0.7),
-                size: 22 * desktopScale,
+                size: 22,
               ),
               onPressed: () => context.go(Destinations.home),
               tooltip: AppLocalizations.of(context).home,
@@ -516,18 +286,18 @@ class _GenresHeader extends StatelessWidget {
               icon: Icon(
                 Icons.arrow_back,
                 color: AppColorScheme.onSurface.withValues(alpha: 0.7),
-                size: 22 * desktopScale,
+                size: 22,
               ),
               onPressed: onBack,
               tooltip: AppLocalizations.of(context).back,
             ),
-          SizedBox(width: 12 * desktopScale),
+          const SizedBox(width: 12),
           Text(
             isMusic
                 ? AppLocalizations.of(context).genres
                 : AppLocalizations.of(context).libraryGenresTitle(libraryName),
             style: TextStyle(
-              fontSize: 26 * desktopScale,
+              fontSize: 26,
               fontWeight: FontWeight.w300,
               color: AppColorScheme.onSurface,
             ),
