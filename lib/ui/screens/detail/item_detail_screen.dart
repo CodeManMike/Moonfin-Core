@@ -30,8 +30,10 @@ import '../../navigation/route_lifecycle_observer.dart';
 import 'modern/modern_detail_content.dart';
 import '../../../data/repositories/seerr_repository.dart';
 import '../../../data/services/seerr/seerr_api_models.dart';
+import '../../../data/viewmodels/seerr_media_detail_view_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../preference/preference_constants.dart';
+import '../../../preference/seerr_preferences.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../auth/repositories/user_repository.dart';
@@ -51,6 +53,7 @@ import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../widgets/fullscreen_backdrop_switcher.dart';
 import '../../widgets/seerr_icons.dart';
+import '../../widgets/seerr/seerr_request_sheet.dart';
 import '../../widgets/focus/context_menu_sheet.dart';
 import '../../widgets/focus/focusable_button.dart';
 import '../../widgets/focus/request_initial_focus.dart';
@@ -4231,6 +4234,12 @@ class DetailActionButtons extends StatefulWidget {
   final bool? actionsExpanded;
   final ValueChanged<bool>? onActionsExpandedChanged;
 
+  /// The series' Seerr/TMDB identity, already resolved by the host screen via
+  /// [resolveSeriesForSeerrRequest] (Seerr unavailable, no TVDB id, or lookup
+  /// failure all resolve to null). When non-null and [viewModel.item] is a
+  /// Series, a "Request on Seerr" button is shown; otherwise it is hidden.
+  final SeerrTvDetails? resolvedSeerrTv;
+
   const DetailActionButtons({
     required this.viewModel,
     this.itemId,
@@ -4250,6 +4259,7 @@ class DetailActionButtons extends StatefulWidget {
     this.onFocusExtra,
     this.actionsExpanded,
     this.onActionsExpandedChanged,
+    this.resolvedSeerrTv,
   });
 
   @override
@@ -5139,6 +5149,7 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     return _DetailActionButton(
       label: button.label,
       icon: button.icon,
+      iconBuilder: button.iconBuilder,
       onPressed: button.onPressed,
       onLongPress: button.onLongPress,
       onFocused: onFocused ?? button.onFocused,
@@ -5528,6 +5539,36 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
     _showSubtitleSelector(context, item, subtitleStreams, audioStreams);
   }
 
+  void _showSeerrRequestSheet(BuildContext context, SeerrTvDetails tv) async {
+    final repo = await GetIt.instance.getAsync<SeerrRepository>();
+    final prefs = GetIt.instance<SeerrPreferences>();
+    final vm = SeerrMediaDetailViewModel(repo, prefs);
+    final l10n = AppLocalizations.of(context);
+
+    await vm.load(tv.id.toString(), 'tv', title: tv.displayTitle);
+
+    if (!context.mounted) {
+      vm.dispose();
+      return;
+    }
+
+    await showStyledPlayerDialog<void>(
+      context,
+      title: l10n.requestSeriesOrMovie(l10n.series),
+      builder: (_) => AnimatedBuilder(
+        animation: vm,
+        builder: (_, _) => SeerrRequestSheet(
+          vm: vm,
+          isTv: true,
+          numberOfSeasons: vm.state.numberOfSeasons ?? 0,
+          requestedSeasons: vm.state.requestedSeasons,
+        ),
+      ),
+    );
+
+    vm.dispose();
+  }
+
   bool _isManagementButton(_DetailActionButton button) {
     return button.icon == Icons.check_circle ||
            button.icon == Icons.check_circle_outline ||
@@ -5840,6 +5881,13 @@ class DetailActionButtonsState extends State<DetailActionButtons> {
           label: l10n.trailer,
           icon: Icons.movie_outlined,
           onPressed: () => _playTrailer(context, item),
+        ),
+      if (isSeries && widget.resolvedSeerrTv != null)
+        _DetailActionButton(
+          label: l10n.seerr,
+          iconBuilder: (size, color) => SeerrIcon(size: size, color: color),
+          onPressed: () =>
+              _showSeerrRequestSheet(context, widget.resolvedSeerrTv!),
         ),
       if (!isBook && !isPhoto && _isInSyncPlayGroup())
         _DetailActionButton(
