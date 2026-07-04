@@ -898,6 +898,14 @@ git commit -m "Add Discover-route exclusion filter for HSS section discovery"
 
 There is no automated test harness for the server plugin repository (`E:\Moonfin_Plugin`) today — it has no test project at all, and this task does not add one, per the constraint that no test infrastructure should be fabricated for that repo. This task instead verifies the new Dart-side HSS client against a real Jellyfin server, since the HSS plugin itself lives in the Jellyfin server's plugin directory (not in `E:\Moonfin_Plugin`, which is the separate Moonbase server plugin) and is out of scope to modify.
 
+**Partial completion status (2026-07-04)**: A real local Jellyfin server (`http://localhost:8096`, "Mike's Jellyfin", v10.11.10) was reachable from the implementation session, but no API key or user session token was available/obtainable in that session (credential discovery/filesystem scanning for one was correctly refused). Only credential-free route-existence checks were performed:
+- `GET /System/Info/Public` → `200` (server reachable, confirms baseline connectivity).
+- `GET /HomeScreen/Sections` (no auth header) → `401 Unauthorized`.
+- `GET /HomeScreen/Section/BecauseYouWatched` (no auth header) → `401 Unauthorized`.
+- Control checks for comparison: a known-nonexistent route (`/ThisRouteDefinitelyDoesNotExist12345`) → `404`; the known-existing standard `/Items` route (no auth) → `401`.
+- Conclusion: both HSS routes pattern-match the "real, registered, auth-required endpoint" signature (`401`), not the "route doesn't exist" signature (`404`), confirming the HSS plugin is installed and its two routes are live on this server exactly where `JellyfinItemsApi.getHomeScreenSections`/`getHomeScreenSectionItems` (Task 3) expect them. This is a meaningful but partial signal — it does not confirm response body shape, the `Discover` route's presence in the real payload, or true end-to-end 404 behavior against a server without HSS installed.
+- **Not yet done**: Steps 1-5 as originally written all require an authenticated `X-Emby-Token` (admin API key or per-user session token) and a real `userId`, which were not available/appropriate to obtain in this non-interactive session. Left as a follow-up for the user to complete at their convenience (generate an API key under Jellyfin Dashboard → API Keys, find a user ID under Dashboard → Users, then run the `curl` commands below) — the route-existence contract itself is now confirmed sound.
+
 Files:
 - None (manual verification only; no code changes in this task)
 
