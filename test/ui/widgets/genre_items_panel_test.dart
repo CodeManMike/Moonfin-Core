@@ -45,4 +45,50 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.byType(GridView), findsNothing);
   });
+
+  testWidgets('loads and renders items for the selected genre', (
+    tester,
+  ) async {
+    when(
+      () => itemsApi.getItems(
+        parentId: any(named: 'parentId'),
+        includeItemTypes: any(named: 'includeItemTypes'),
+        excludeItemTypes: any(named: 'excludeItemTypes'),
+        genreIds: any(named: 'genreIds'),
+        filters: any(named: 'filters'),
+        sortBy: any(named: 'sortBy'),
+        sortOrder: any(named: 'sortOrder'),
+        recursive: any(named: 'recursive'),
+        startIndex: any(named: 'startIndex'),
+        limit: any(named: 'limit'),
+        isFavorite: any(named: 'isFavorite'),
+        fields: any(named: 'fields'),
+        enableImageTypes: any(named: 'enableImageTypes'),
+        imageTypeLimit: any(named: 'imageTypeLimit'),
+      ),
+    ).thenAnswer(
+      (_) async => {
+        'Items': [
+          {'Id': 'i1', 'Name': 'Movie One', 'Type': 'Movie'},
+        ],
+        'TotalRecordCount': 1,
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: GenreItemsPanel(
+            genreId: 'g1',
+            genreName: 'Comedy',
+            dataSource: dataSource,
+            serverId: 'server1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Movie One'), findsOneWidget);
+  });
 }
