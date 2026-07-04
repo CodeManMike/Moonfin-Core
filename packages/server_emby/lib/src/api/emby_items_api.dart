@@ -549,6 +549,25 @@ class EmbyItemsApi implements ItemsApi {
     return const {'Lyrics': []};
   }
 
+  @override
+  Future<List<Map<String, dynamic>>> getHomeScreenSections() async {
+    throw UnsupportedError(
+      'Home Screen Sections is a Jellyfin-only plugin and is not supported '
+      'for Emby servers.',
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> getHomeScreenSectionItems(
+    String sectionType, {
+    String? additionalData,
+  }) async {
+    throw UnsupportedError(
+      'Home Screen Sections is a Jellyfin-only plugin and is not supported '
+      'for Emby servers.',
+    );
+  }
+
   List<Map<String, dynamic>> _parseItemListResponse(dynamic data) {
     if (data is List) return data.cast<Map<String, dynamic>>();
     if (data is Map<String, dynamic>) {

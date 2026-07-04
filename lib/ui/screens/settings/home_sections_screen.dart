@@ -1861,6 +1861,8 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       HomeSectionPluginSource.collections => 'Collections row',
       HomeSectionPluginSource.genres => 'Genres row',
       HomeSectionPluginSource.playlists => 'Playlists row',
+      HomeSectionPluginSource.homeScreenSections =>
+        'Home Screen Sections plugin row',
       HomeSectionPluginSource.custom => (() {
           Map<String, dynamic> rowConfig = {};
           try {
