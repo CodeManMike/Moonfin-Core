@@ -1476,6 +1476,12 @@ Files:
 
 There is no automated test harness in `E:\Moonfin_Plugin` today (no test project exists in that repository), and this plan makes no changes to `E:\Moonfin_Plugin` — Jellysleep is a separate, already-installed third-party plugin on the user's Jellyfin server, reached directly by the client with the existing auth token, per the spec's explicit "no server plugin proxy needed." Verification here is manual `curl` integration testing against the live server plus manual exercise of the Flutter client build.
 
+**Partial completion status (2026-07-04)**: Steps 1 and 3 were run against the user's real local Jellyfin server (`http://localhost:8096`) using an admin API key.
+- `POST /Plugin/Jellysleep/StartTimer` and `POST /Plugin/Jellysleep/CancelTimer` both returned `400 Bad Request` with body `"Invalid user session"` — **not** `404`, confirming the routes genuinely exist exactly as `JellysleepApi` assumes.
+- The `X-Emby-Token` auth scheme itself is correct (confirmed working against `/System/Info`).
+- The `400`s are fully explained and not a defect: an admin API key does not resolve to a per-user identity in Jellyfin at all (confirmed independently — `/Users/Me` returns the identical `400` with the same key). Jellysleep's endpoint requires a resolvable `Jellyfin-UserId` claim, which only a genuine per-user login session token carries. Moonfin's actual `Dio` client always authenticates with exactly that kind of token in normal use, so this gap is an artifact of the test credential, not evidence of a problem in the shipped `JellysleepApi`/handler code.
+- **Not yet done**: Steps 2, 4, and 5 (confirming the timer actually stops playback, confirming the `episode` type is accepted, and manually exercising the running Moonfin client end-to-end) still require a genuine per-user session token (grab one from browser devtools while logged into jellyfin-web) rather than an admin API key. Left as a follow-up for the user to complete at their convenience — the API contract itself is now confirmed sound.
+
 Files:
 - None (no code changes in this task; verification only)
 
