@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
@@ -130,5 +131,63 @@ void main() {
         imageTypeLimit: any(named: 'imageTypeLimit'),
       ),
     ).called(lessThanOrEqualTo(1));
+  });
+
+  testWidgets('moving dpad focus down the list updates the right panel', (
+    tester,
+  ) async {
+    when(
+      () => itemsApi.getItems(
+        parentId: any(named: 'parentId'),
+        includeItemTypes: any(named: 'includeItemTypes'),
+        excludeItemTypes: any(named: 'excludeItemTypes'),
+        genreIds: any(named: 'genreIds'),
+        filters: any(named: 'filters'),
+        sortBy: any(named: 'sortBy'),
+        sortOrder: any(named: 'sortOrder'),
+        recursive: any(named: 'recursive'),
+        startIndex: any(named: 'startIndex'),
+        limit: any(named: 'limit'),
+        isFavorite: any(named: 'isFavorite'),
+        fields: any(named: 'fields'),
+        enableImageTypes: any(named: 'enableImageTypes'),
+        imageTypeLimit: any(named: 'imageTypeLimit'),
+      ),
+    ).thenAnswer((invocation) async {
+      final genreIds =
+          invocation.namedArguments[#genreIds] as List<String>?;
+      if (genreIds?.first == 'g2') {
+        return {
+          'Items': [
+            {'Id': 'd1', 'Name': 'Drama Movie', 'Type': 'Movie'},
+          ],
+          'TotalRecordCount': 1,
+        };
+      }
+      return {
+        'Items': [
+          {'Id': 'c1', 'Name': 'Comedy Movie', 'Type': 'Movie'},
+        ],
+        'TotalRecordCount': 1,
+      };
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const AllGenresScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Comedy Movie'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Drama Movie'), findsOneWidget);
   });
 }
