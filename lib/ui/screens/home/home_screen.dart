@@ -545,6 +545,34 @@ class _Backdrop extends StatelessWidget {
   }
 }
 
+/// Scale factor applied to a home row's content when it holds D-pad focus.
+///
+/// Returns `1.0` (no scaling) unless running on a TV platform in the
+/// non-fullscreen row layout, so the focused-row visual treatment never
+/// shifts sibling rows — see [homeRowFocusExtraSpacing], which is always
+/// zero for the same reason.
+double homeRowFocusScale({
+  required bool isFocused,
+  required bool isTV,
+  required bool fullScreenRows,
+}) {
+  if (!isFocused || !isTV || fullScreenRows) return 1.0;
+  return 1.04;
+}
+
+/// Extra vertical spacing reserved after a focused home row.
+///
+/// Always zero: the focused-row treatment is a non-shifting scale
+/// ([homeRowFocusScale]) rather than inserted padding, so sibling row
+/// positions never move when focus changes.
+double homeRowFocusExtraSpacing({
+  required bool isFocused,
+  required bool isTV,
+  required bool fullScreenRows,
+}) {
+  return 0.0;
+}
+
 class _ContentRows extends StatefulWidget {
   final HomeViewModel viewModel;
   final MediaBarViewModel mediaBarViewModel;
@@ -572,7 +600,6 @@ class _ContentRowsState extends State<_ContentRows>
     with WidgetsBindingObserver, WindowListener
     implements AudioOwnable {
   static const double _kHomeRowLabelInset = 16.0;
-  static const double _focusedRowExtraSpacing = 20.0;
   static const Duration _focusedRowSpacingDuration = Duration(
     milliseconds: 200,
   );
@@ -3141,15 +3168,14 @@ class _ContentRowsState extends State<_ContentRows>
     if (includeMediaBar) {
       currentTop += mediaBarHeight;
     }
-    final focusedRowSpacing = PlatformDetection.isTV && !fullScreenRows
-        ? _focusedRowExtraSpacing * 2
-        : 0.0;
     for (var i = 0; i < rowExtents.length; i++) {
       rowTopOffsets.add(currentTop);
       currentTop += rowExtents[i];
-      if (i == _activeFocusedRowIndex) {
-        currentTop += focusedRowSpacing;
-      }
+      currentTop += homeRowFocusExtraSpacing(
+        isFocused: i == _activeFocusedRowIndex,
+        isTV: PlatformDetection.isTV,
+        fullScreenRows: fullScreenRows,
+      );
     }
 
     _rowTopOffsets = rowTopOffsets;
@@ -3361,16 +3387,14 @@ class _ContentRowsState extends State<_ContentRows>
 
               final itemWidget = Padding(
                 padding: EdgeInsets.only(left: rowLeftInset),
-                child: AnimatedPadding(
+                child: AnimatedScale(
                   duration: _focusedRowSpacingDuration,
                   curve: Curves.easeOut,
-                  padding: EdgeInsets.symmetric(
-                    vertical:
-                        (PlatformDetection.isTV &&
-                            !fullScreenRows &&
-                            rowIndex == _activeFocusedRowIndex)
-                        ? _focusedRowExtraSpacing
-                        : 0,
+                  alignment: Alignment.centerLeft,
+                  scale: homeRowFocusScale(
+                    isFocused: rowIndex == _activeFocusedRowIndex,
+                    isTV: PlatformDetection.isTV,
+                    fullScreenRows: fullScreenRows,
                   ),
                   child: _buildShiftedRow(
                     child: paddedRowChild,
