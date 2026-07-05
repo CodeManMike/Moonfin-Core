@@ -604,7 +604,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                 sortBy: _vm.sortBy,
                 letterFilter: _vm.letterFilter,
                 isMusicBrowse: _vm.isMusicBrowse,
-                isBookBrowse: false,
+                isBookBrowse: _vm.isBookLibrary,
                 activeBookTab: _bookMediaTab,
                 bookOrganizeMode: _bookOrganizeMode,
                 playedFilter: _vm.playedFilter,
@@ -1241,9 +1241,10 @@ class _LibraryHeader extends StatelessWidget {
               onChanged: onBookTabChanged,
             ),
             const SizedBox(height: 8),
-            _BookStatusCategories(
+            _StatusFilterChips(
               playedFilter: playedFilter,
               favoriteFilter: favoriteFilter,
+              isBookLibrary: true,
               onPlayedFilterChanged: onPlayedFilterChanged,
               onFavoriteFilterChanged: onFavoriteFilterChanged,
             ),
@@ -1251,6 +1252,15 @@ class _LibraryHeader extends StatelessWidget {
             _BookOrganizeChips(
               mode: bookOrganizeMode,
               onChanged: onBookOrganizeChanged,
+            ),
+          ] else if (!isMusicBrowse) ...[
+            const SizedBox(height: 8),
+            _StatusFilterChips(
+              playedFilter: playedFilter,
+              favoriteFilter: favoriteFilter,
+              isBookLibrary: false,
+              onPlayedFilterChanged: onPlayedFilterChanged,
+              onFavoriteFilterChanged: onFavoriteFilterChanged,
             ),
           ],
         ],
@@ -2064,6 +2074,30 @@ class _BookMediaTabs extends StatelessWidget {
   }
 }
 
+/// The four quick-filter chips shown inline above a library grid.
+enum StatusChipKind { all, unwatched, watched, favorites }
+
+/// Whether [chip] should render as selected given the current filter state.
+///
+/// Mirrors the selection logic already used by the book-library chip row so
+/// movie/show/music libraries get identical toggle semantics: the "all" chip
+/// is only selected when both the played filter is [PlayedStatusFilter.all]
+/// and the favorite filter is off, while the other three chips each track a
+/// single independent filter value.
+bool isStatusChipSelected({
+  required StatusChipKind chip,
+  required PlayedStatusFilter playedFilter,
+  required bool favoriteFilter,
+}) {
+  return switch (chip) {
+    StatusChipKind.all =>
+      playedFilter == PlayedStatusFilter.all && !favoriteFilter,
+    StatusChipKind.unwatched => playedFilter == PlayedStatusFilter.unwatched,
+    StatusChipKind.watched => playedFilter == PlayedStatusFilter.watched,
+    StatusChipKind.favorites => favoriteFilter,
+  };
+}
+
 class _BookOrganizeChips extends StatelessWidget {
   final _BookOrganizeMode mode;
   final ValueChanged<_BookOrganizeMode> onChanged;
@@ -2097,15 +2131,17 @@ class _BookOrganizeChips extends StatelessWidget {
   }
 }
 
-class _BookStatusCategories extends StatelessWidget {
+class _StatusFilterChips extends StatelessWidget {
   final PlayedStatusFilter playedFilter;
   final bool favoriteFilter;
+  final bool isBookLibrary;
   final ValueChanged<PlayedStatusFilter> onPlayedFilterChanged;
   final ValueChanged<bool> onFavoriteFilterChanged;
 
-  const _BookStatusCategories({
+  const _StatusFilterChips({
     required this.playedFilter,
     required this.favoriteFilter,
+    required this.isBookLibrary,
     required this.onPlayedFilterChanged,
     required this.onFavoriteFilterChanged,
   });
@@ -2119,25 +2155,41 @@ class _BookStatusCategories extends StatelessWidget {
       children: [
         _BookFilterChip(
           label: l10n.all,
-          selected: playedFilter == PlayedStatusFilter.all && !favoriteFilter,
+          selected: isStatusChipSelected(
+            chip: StatusChipKind.all,
+            playedFilter: playedFilter,
+            favoriteFilter: favoriteFilter,
+          ),
           onTap: () {
             onFavoriteFilterChanged(false);
             onPlayedFilterChanged(PlayedStatusFilter.all);
           },
         ),
         _BookFilterChip(
-          label: l10n.unread,
-          selected: playedFilter == PlayedStatusFilter.unwatched,
+          label: isBookLibrary ? l10n.unread : l10n.unwatched,
+          selected: isStatusChipSelected(
+            chip: StatusChipKind.unwatched,
+            playedFilter: playedFilter,
+            favoriteFilter: favoriteFilter,
+          ),
           onTap: () => onPlayedFilterChanged(PlayedStatusFilter.unwatched),
         ),
         _BookFilterChip(
-          label: l10n.readStatus,
-          selected: playedFilter == PlayedStatusFilter.watched,
+          label: isBookLibrary ? l10n.readStatus : l10n.watched,
+          selected: isStatusChipSelected(
+            chip: StatusChipKind.watched,
+            playedFilter: playedFilter,
+            favoriteFilter: favoriteFilter,
+          ),
           onTap: () => onPlayedFilterChanged(PlayedStatusFilter.watched),
         ),
         _BookFilterChip(
           label: l10n.favorites,
-          selected: favoriteFilter,
+          selected: isStatusChipSelected(
+            chip: StatusChipKind.favorites,
+            playedFilter: playedFilter,
+            favoriteFilter: favoriteFilter,
+          ),
           onTap: () => onFavoriteFilterChanged(!favoriteFilter),
         ),
       ],
