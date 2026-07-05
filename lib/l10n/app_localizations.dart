@@ -934,6 +934,24 @@ abstract class AppLocalizations {
   /// **'Extra Large'**
   String get extraLarge;
 
+  /// Section header for grid density selection, independent of poster size
+  ///
+  /// In en, this message translates to:
+  /// **'Grid Density'**
+  String get gridDensity;
+
+  /// Grid density option showing fewer, larger columns
+  ///
+  /// In en, this message translates to:
+  /// **'Comfortable'**
+  String get gridDensityComfortable;
+
+  /// Grid density option showing more, smaller columns
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get gridDensityCompact;
+
   /// Header title showing library name with genres suffix
   ///
   /// In en, this message translates to:

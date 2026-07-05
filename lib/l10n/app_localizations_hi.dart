@@ -401,6 +401,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get extraLarge => 'एक्स्ट्रा लार्ज';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name — Genres';
   }

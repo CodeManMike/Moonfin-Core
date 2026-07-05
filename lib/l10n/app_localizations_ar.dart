@@ -397,6 +397,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get extraLarge => 'كبير جدا';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name — الأنواع';
   }

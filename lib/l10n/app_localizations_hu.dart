@@ -401,6 +401,15 @@ class AppLocalizationsHu extends AppLocalizations {
   String get extraLarge => 'Extra nagy';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name — Genres';
   }

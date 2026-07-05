@@ -400,6 +400,15 @@ class AppLocalizationsBg extends AppLocalizations {
   String get extraLarge => 'Изключително голям';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name — Жанрове';
   }

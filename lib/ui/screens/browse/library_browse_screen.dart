@@ -45,6 +45,23 @@ enum _BookMediaTab { books, audiobooks }
 
 enum _BookOrganizeMode { all, author, genre }
 
+/// Computes the grid column count for a library grid, applying [density]'s
+/// [GridDensity.columnScale] to the effective card width independently of
+/// the poster-size preference that produced [cardWidth].
+int gridCrossAxisCountFor({
+  required double availableWidth,
+  required double gridPadding,
+  required double cardWidth,
+  required double spacing,
+  required GridDensity density,
+}) {
+  final effectiveCardWidth = cardWidth * density.columnScale;
+  return ((availableWidth - gridPadding * 2 + spacing) /
+          (effectiveCardWidth + spacing))
+      .floor()
+      .clamp(2, 20);
+}
+
 class LibraryBrowseScreen extends StatefulWidget {
   final String libraryId;
   final String? genreId;
@@ -682,11 +699,13 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
       builder: (context, constraints) {
         final isMobile = _isCompact(context);
         final gridPadding = isMobile ? 16.0 : _horizontalPadding;
-        final crossAxisCount =
-            ((constraints.maxWidth - gridPadding * 2 + spacing) /
-                    (cardWidth + spacing))
-                .floor()
-                .clamp(2, 20);
+        final crossAxisCount = gridCrossAxisCountFor(
+          availableWidth: constraints.maxWidth,
+          gridPadding: gridPadding,
+          cardWidth: cardWidth,
+          spacing: spacing,
+          density: _prefs.get(UserPreferences.libraryGridDensity),
+        );
 
         final cellWidth =
             (constraints.maxWidth -
@@ -1950,6 +1969,56 @@ class _SettingsDialogState extends State<_SettingsDialog> {
             ),
             for (final size in PosterSize.values)
               _posterSizeRadioTile(vm, size),
+            Divider(color: dividerColor),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+              child: Text(
+                l10n.gridDensity,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: sectionColor,
+                ),
+              ),
+            ),
+            for (final density in GridDensity.values)
+              _gridDensityRadioTile(vm, density),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _gridDensityRadioTile(LibraryBrowseViewModel vm, GridDensity density) {
+    final selected =
+        widget.vm.prefs.get(UserPreferences.libraryGridDensity) == density;
+    final accent = vm.isBookLibrary ? _bookAccent : _jellyfinBlue;
+    final onSurface = AppColorScheme.onSurface;
+    final l10n = AppLocalizations.of(context);
+    final label = switch (density) {
+      GridDensity.comfortable => l10n.gridDensityComfortable,
+      GridDensity.compact => l10n.gridDensityCompact,
+    };
+    return InkWell(
+      onTap: () {
+        unawaited(
+          widget.vm.prefs.set(UserPreferences.libraryGridDensity, density),
+        );
+        setState(() {});
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Row(
+          children: [
+            _radioCircle(selected, accent),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: selected ? onSurface : onSurface.withValues(alpha: 0.72),
+              ),
+            ),
           ],
         ),
       ),

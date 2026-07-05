@@ -618,6 +618,12 @@ class UserPreferences extends ChangeNotifier {
     values: PosterSize.values,
   );
 
+  static final libraryGridDensity = EnumPreference(
+    key: 'library_grid_density',
+    defaultValue: GridDensity.comfortable,
+    values: GridDensity.values,
+  );
+
   static final playlistPosterSize = EnumPreference(
     key: 'poster_size_playlist',
     defaultValue: PosterSize.medium,

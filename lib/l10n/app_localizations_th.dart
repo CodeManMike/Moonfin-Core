@@ -401,6 +401,15 @@ class AppLocalizationsTh extends AppLocalizations {
   String get extraLarge => 'ใหญ่พิเศษ';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name — ประเภท';
   }

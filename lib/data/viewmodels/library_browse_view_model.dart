@@ -19,6 +19,8 @@ class LibraryBrowseViewModel extends ChangeNotifier {
   final String? overrideName;
   final List<String>? includeItemTypes;
 
+  UserPreferences get prefs => _prefs;
+
   static const _pageSize = 48;
   static const _firstPageSize = 75;
   static const _browseFields =

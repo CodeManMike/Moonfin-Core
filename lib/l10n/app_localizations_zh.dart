@@ -388,6 +388,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get extraLarge => '超大';
 
   @override
+  String get gridDensity => 'Grid Density';
+
+  @override
+  String get gridDensityComfortable => 'Comfortable';
+
+  @override
+  String get gridDensityCompact => 'Compact';
+
+  @override
   String libraryGenresTitle(String name) {
     return '$name - 类型';
   }

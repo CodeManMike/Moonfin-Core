@@ -524,6 +524,18 @@
   "@extraLarge": {
     "description": "Poster size option"
   },
+  "gridDensity": "Grid Density",
+  "@gridDensity": {
+    "description": "Section header for grid density selection, independent of poster size"
+  },
+  "gridDensityComfortable": "Comfortable",
+  "@gridDensityComfortable": {
+    "description": "Grid density option showing fewer, larger columns"
+  },
+  "gridDensityCompact": "Compact",
+  "@gridDensityCompact": {
+    "description": "Grid density option showing more, smaller columns"
+  },
   "libraryGenresTitle": "{name} \u2014 Genres",
   "@libraryGenresTitle": {
     "description": "Header title showing library name with genres suffix",

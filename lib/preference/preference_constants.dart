@@ -98,6 +98,18 @@ enum PosterSize {
   final int landscapeHeight;
 }
 
+enum GridDensity {
+  comfortable(columnScale: 1.0),
+  compact(columnScale: 0.8);
+
+  const GridDensity({required this.columnScale});
+
+  /// Multiplier applied to the effective card-width divisor when computing
+  /// grid column count: values below 1.0 pack more columns into the same
+  /// width without changing the poster-size preference.
+  final double columnScale;
+}
+
 enum FavoritesViewStyle {
   home,
   library,
