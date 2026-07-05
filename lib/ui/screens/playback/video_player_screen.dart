@@ -2085,6 +2085,47 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         _trickplayMediaSourceId = mediaSourceId;
       });
     }
+    if (info != null && info.isValid) {
+      _prefetchTrickplayTiles(item, info, mediaSourceId);
+    }
+  }
+
+  void _prefetchTrickplayTiles(
+    dynamic item,
+    TrickplayInfo info,
+    String? mediaSourceId,
+  ) {
+    if (!_prefs.get(UserPreferences.trickPlayEnabled)) return;
+    final itemId = _itemIdForQueueItem(item);
+    if (itemId == null || itemId.isEmpty) return;
+
+    final rawData = _rawDataForQueueItem(item);
+    final runtimeTicks = rawData?['RunTimeTicks'] as int?;
+    final durationMs = runtimeTicks != null ? runtimeTicks ~/ 10000 : 0;
+    final imageCount = trickplayImageCountFor(
+      durationMs: durationMs,
+      info: info,
+    );
+
+    final client = _clientForQueueItem(item);
+    final token = client.accessToken;
+    final headers = <String, String>{
+      if (token != null && token.isNotEmpty)
+        'Authorization': 'MediaBrowser Token="$token"',
+    };
+
+    for (var i = 0; i < imageCount; i++) {
+      final url = client.imageApi.getTrickplayTileImageUrl(
+        itemId,
+        width: info.width,
+        index: i,
+        mediaSourceId: mediaSourceId,
+      );
+      final provider = NetworkImage(url, headers: headers.isEmpty ? null : headers);
+      unawaited(
+        precacheImage(provider, context).catchError((_) {}),
+      );
+    }
   }
 
   void _refreshTrickplayIfNeeded() {

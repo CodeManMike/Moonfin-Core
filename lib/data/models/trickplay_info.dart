@@ -51,3 +51,16 @@ class TrickplayInfo {
     );
   }
 }
+
+/// Number of trickplay sprite-sheet images that cover a media item of
+/// [durationMs] milliseconds, given [info]'s tile grid and sampling
+/// interval. Falls back to 16 when duration is not yet known (zero or
+/// negative), and is always clamped to the 1-128 range the server's
+/// trickplay image index accepts.
+int trickplayImageCountFor({required int durationMs, required TrickplayInfo info}) {
+  final msPerImage = info.interval * info.tilesPerImage;
+  final count = durationMs > 0 && msPerImage > 0
+      ? (durationMs / msPerImage).ceil() + 1
+      : 16;
+  return count.clamp(1, 128);
+}
