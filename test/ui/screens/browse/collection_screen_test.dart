@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:moonfin/auth/repositories/session_repository.dart';
 import 'package:moonfin/auth/repositories/user_repository.dart';
+import 'package:moonfin/data/repositories/seerr_repository.dart';
+import 'package:moonfin/data/repositories/tmdb_repository.dart';
 import 'package:moonfin/data/repositories/user_views_repository.dart';
 import 'package:moonfin/data/services/media_server_client_factory.dart';
 import 'package:moonfin/data/services/plugin_sync_service.dart';
@@ -22,6 +24,8 @@ class MockItemsApi extends Mock implements ItemsApi {}
 class MockImageApi extends Mock implements ImageApi {}
 class MockUserViewsApi extends Mock implements UserViewsApi {}
 class MockSessionRepository extends Mock implements SessionRepository {}
+class MockTmdbRepository extends Mock implements TmdbRepository {}
+class MockSeerrRepository extends Mock implements SeerrRepository {}
 
 void main() {
   late MockMediaServerClient client;
@@ -129,5 +133,60 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Movie One'), findsOneWidget);
+  });
+
+  testWidgets('shows a Request button for a missing collection item', (tester) async {
+    when(() => itemsApi.getItems(
+          parentId: any(named: 'parentId'),
+          recursive: any(named: 'recursive'),
+          sortBy: any(named: 'sortBy'),
+          sortOrder: any(named: 'sortOrder'),
+          startIndex: any(named: 'startIndex'),
+          limit: any(named: 'limit'),
+          fields: any(named: 'fields'),
+          enableImageTypes: any(named: 'enableImageTypes'),
+          imageTypeLimit: any(named: 'imageTypeLimit'),
+          enableTotalRecordCount: any(named: 'enableTotalRecordCount'),
+        )).thenAnswer((_) async => {
+          'Items': [
+            {
+              'Id': 'item-1',
+              'Name': 'The Empire Strikes Back',
+              'Type': 'Movie',
+              'ProviderIds': {'Tmdb': '1891'},
+            },
+          ],
+          'TotalRecordCount': 1,
+        });
+
+    if (GetIt.instance.isRegistered<TmdbRepository>()) {
+      GetIt.instance.unregister<TmdbRepository>();
+    }
+    final tmdbRepo = MockTmdbRepository();
+    when(() => tmdbRepo.getCollection(10)).thenAnswer((_) async => {
+          'success': true,
+          'id': 10,
+          'name': 'Star Wars Collection',
+          'parts': [
+            {'id': 1891, 'title': 'The Empire Strikes Back', 'releaseDate': '1980-05-20', 'posterPath': null, 'overview': ''},
+            {'id': 1892, 'title': 'Return of the Jedi', 'releaseDate': '1983-05-25', 'posterPath': null, 'overview': ''},
+          ],
+        });
+    GetIt.instance.registerSingleton<TmdbRepository>(tmdbRepo);
+
+    if (GetIt.instance.isRegistered<SeerrRepository>()) {
+      GetIt.instance.unregister<SeerrRepository>();
+    }
+    GetIt.instance.registerSingleton<SeerrRepository>(MockSeerrRepository());
+
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: const CollectionScreen(collectionId: 'col-1', tmdbCollectionId: 10),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Return of the Jedi'), findsOneWidget);
+    expect(find.text(AppLocalizations.of(tester.element(find.byType(CollectionScreen))).request), findsOneWidget);
   });
 }
