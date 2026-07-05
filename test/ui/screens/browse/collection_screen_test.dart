@@ -177,7 +177,10 @@ void main() {
     if (GetIt.instance.isRegistered<SeerrRepository>()) {
       GetIt.instance.unregister<SeerrRepository>();
     }
-    GetIt.instance.registerSingleton<SeerrRepository>(MockSeerrRepository());
+    GetIt.instance.registerSingletonAsync<SeerrRepository>(
+      () async => MockSeerrRepository(),
+    );
+    await GetIt.instance.isReady<SeerrRepository>();
 
     await tester.pumpWidget(MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
