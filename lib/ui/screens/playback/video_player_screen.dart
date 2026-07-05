@@ -61,6 +61,7 @@ import '../../widgets/playback/sleep_timer_indicator.dart';
 import '../../widgets/playback/sleep_timer_picker_dialog.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
 import '../../widgets/playback/stream_info_dialog.dart';
+import 'cinema_mode_chrome.dart';
 import '../../widgets/syncplay/syncplay_player_button.dart';
 import '../../../syncplay/syncplay_manager.dart';
 import '../../../l10n/app_localizations.dart';
@@ -365,7 +366,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _syncPrerollOsdState() {
-    if (!_isCurrentPreroll) return;
+    final suppressChrome = shouldSuppressCinemaChrome(
+      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
+      isCurrentItemPreroll: _isCurrentPreroll,
+    );
+    if (!suppressChrome) return;
     _hideTimer?.cancel();
     if (!_controlsVisible && !_isOsdLocked) return;
     setState(() {
@@ -2555,7 +2560,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _showControls({bool focusSeekbar = false}) {
-    if (_isCurrentPreroll) {
+    if (shouldSuppressCinemaChrome(
+      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
+      isCurrentItemPreroll: _isCurrentPreroll,
+    )) {
       _syncPrerollOsdState();
       return;
     }
@@ -2567,7 +2575,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _toggleControls() {
-    if (_isCurrentPreroll) {
+    if (shouldSuppressCinemaChrome(
+      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
+      isCurrentItemPreroll: _isCurrentPreroll,
+    )) {
       _syncPrerollOsdState();
       return;
     }
@@ -3281,7 +3292,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final hideOsdForPreroll = _isCurrentPreroll;
+    final hideOsdForPreroll = shouldSuppressCinemaChrome(
+      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
+      isCurrentItemPreroll: _isCurrentPreroll,
+    );
     if (_isInPiP) {
       return Scaffold(
         backgroundColor: Colors.black,
