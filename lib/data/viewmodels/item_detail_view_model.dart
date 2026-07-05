@@ -10,6 +10,7 @@ import '../repositories/mdblist_repository.dart';
 import '../repositories/tmdb_repository.dart';
 import '../utils/playlist_utils.dart';
 import '../../util/episode_playability.dart';
+import '../services/episode_queue_service.dart';
 import '../services/plugin_sync_service.dart';
 
 enum CollectionSortOption {
@@ -29,6 +30,7 @@ class ItemDetailViewModel extends ChangeNotifier {
   final ItemMutationRepository _mutations;
   final MdbListRepository _mdbListRepository;
   final TmdbRepository _tmdbRepository;
+  final EpisodeQueueService _episodeQueueService;
 
   final String itemId;
 
@@ -185,11 +187,13 @@ class ItemDetailViewModel extends ChangeNotifier {
     required ItemMutationRepository mutations,
     required MdbListRepository mdbListRepository,
     required TmdbRepository tmdbRepository,
+    EpisodeQueueService? episodeQueueService,
   }) : _serverId = serverId,
        _client = client,
        _mutations = mutations,
        _mdbListRepository = mdbListRepository,
-       _tmdbRepository = tmdbRepository;
+       _tmdbRepository = tmdbRepository,
+       _episodeQueueService = episodeQueueService ?? EpisodeQueueService();
 
   Future<void> load({String? mediaSourceId}) async {
     _state = ItemDetailState.loading;
@@ -274,9 +278,11 @@ class ItemDetailViewModel extends ChangeNotifier {
 
   Future<void> _loadSeasons() async {
     try {
-      final data = await _client.itemsApi.getSeasons(itemId);
-      final items = (data['Items'] as List?) ?? [];
-      _seasons = _mapItems(items);
+      _seasons = await _episodeQueueService.loadSeasons(
+        client: _client,
+        seriesId: itemId,
+        serverId: _serverId ?? _client.baseUrl,
+      );
       notifyListeners();
     } catch (_) {}
   }
@@ -286,13 +292,12 @@ class ItemDetailViewModel extends ChangeNotifier {
     if (item == null) return;
     final seriesId = item.seriesId ?? itemId;
     try {
-      final data = await _client.itemsApi.getEpisodes(
-        seriesId,
+      _episodes = await _episodeQueueService.loadEpisodes(
+        client: _client,
+        seriesId: seriesId,
+        serverId: _serverId ?? _client.baseUrl,
         seasonId: item.type == 'Season' ? itemId : item.seasonId,
-        fields: _episodeOverviewFields,
       );
-      final items = (data['Items'] as List?) ?? [];
-      _episodes = _mapItems(items);
       notifyListeners();
     } catch (_) {}
   }
@@ -306,12 +311,11 @@ class ItemDetailViewModel extends ChangeNotifier {
     if (_seriesEpisodesRequested) return;
     _seriesEpisodesRequested = true;
     try {
-      final data = await _client.itemsApi.getEpisodes(
-        itemId,
-        fields: _episodeOverviewFields,
+      _seriesEpisodes = await _episodeQueueService.loadAllSeriesEpisodes(
+        client: _client,
+        seriesId: itemId,
+        serverId: _serverId ?? _client.baseUrl,
       );
-      final items = (data['Items'] as List?) ?? [];
-      _seriesEpisodes = _mapItems(items);
       notifyListeners();
     } catch (_) {
       _seriesEpisodesRequested = false;
