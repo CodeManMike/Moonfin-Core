@@ -6,7 +6,10 @@ import 'package:moonfin_design/moonfin_design.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../../data/models/aggregated_item.dart';
+import '../../../data/repositories/seerr_repository.dart';
+import '../../../data/repositories/tmdb_repository.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../data/viewmodels/collection_missing_items_view_model.dart';
 import '../../../data/viewmodels/collection_view_model.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../navigation/destinations.dart';
@@ -17,11 +20,13 @@ import '../../widgets/navigation_layout.dart';
 class CollectionScreen extends StatefulWidget {
   final String collectionId;
   final String? serverId;
+  final int? tmdbCollectionId;
 
   const CollectionScreen({
     super.key,
     required this.collectionId,
     this.serverId,
+    this.tmdbCollectionId,
   });
 
   @override
@@ -30,7 +35,9 @@ class CollectionScreen extends StatefulWidget {
 
 class _CollectionScreenState extends State<CollectionScreen> {
   late final CollectionViewModel _vm;
+  CollectionMissingItemsViewModel? _missingItemsVm;
   final _scrollController = ScrollController();
+  bool _missingItemsRequested = false;
 
   @override
   void initState() {
@@ -45,11 +52,40 @@ class _CollectionScreenState extends State<CollectionScreen> {
     _vm = CollectionViewModel(client);
     _vm.addListener(_onChanged);
     _scrollController.addListener(_onScroll);
+    if (widget.tmdbCollectionId != null) {
+      _initMissingItemsVm();
+    }
     _vm.loadCollection(widget.collectionId);
   }
 
+  Future<void> _initMissingItemsVm() async {
+    final seerrRepository = await GetIt.instance.getAsync<SeerrRepository>();
+    if (!mounted) return;
+    _missingItemsVm = CollectionMissingItemsViewModel(
+      tmdbRepository: GetIt.instance<TmdbRepository>(),
+      seerrRepository: seerrRepository,
+    );
+    _missingItemsVm!.addListener(_onChanged);
+    _maybeLoadMissingItems();
+  }
+
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _maybeLoadMissingItems();
+    setState(() {});
+  }
+
+  void _maybeLoadMissingItems() {
+    if (!_missingItemsRequested &&
+        _vm.state == CollectionState.ready &&
+        widget.tmdbCollectionId != null &&
+        _missingItemsVm != null) {
+      _missingItemsRequested = true;
+      _missingItemsVm!.loadMissingItems(
+        tmdbCollectionId: widget.tmdbCollectionId!,
+        libraryItems: _vm.items,
+      );
+    }
   }
 
   void _onScroll() {
@@ -63,6 +99,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
   void dispose() {
     _vm.removeListener(_onChanged);
     _vm.dispose();
+    _missingItemsVm?.removeListener(_onChanged);
+    _missingItemsVm?.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -134,7 +172,16 @@ class _CollectionScreenState extends State<CollectionScreen> {
           ),
         );
       case CollectionState.ready:
-        return _buildGrid();
+        return SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGrid(),
+              if (_missingItemsVm != null) _buildMissingItemsSection(),
+            ],
+          ),
+        );
     }
   }
 
@@ -157,13 +204,12 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 (crossAxisCount - 1) * spacing) /
             crossAxisCount;
 
-        return SingleChildScrollView(
-          controller: _scrollController,
+        return Padding(
           padding: const EdgeInsets.fromLTRB(
             horizontalPadding,
             16,
             horizontalPadding,
-            32,
+            16,
           ),
           child: Wrap(
             spacing: spacing,
@@ -191,6 +237,121 @@ class _CollectionScreenState extends State<CollectionScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMissingItemsSection() {
+    final missingVm = _missingItemsVm!;
+    if (missingVm.state == MissingItemsState.loading ||
+        missingVm.state == MissingItemsState.idle) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (missingVm.state == MissingItemsState.error ||
+        missingVm.missingItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.collections,
+            style: TextStyle(
+              color: AppColorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 16,
+            children: [
+              for (final item in missingVm.missingItems)
+                SizedBox(
+                  width: 170,
+                  child: _MissingItemCard(
+                    item: item,
+                    isRequesting: missingVm.isRequesting(item.tmdbId),
+                    isRequested: missingVm.requestedTmdbIds.contains(item.tmdbId),
+                    requestLabel: l10n.request,
+                    onRequest: () => missingVm.requestMissingItem(item),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissingItemCard extends StatelessWidget {
+  final MissingCollectionItem item;
+  final bool isRequesting;
+  final bool isRequested;
+  final String requestLabel;
+  final VoidCallback onRequest;
+
+  const _MissingItemCard({
+    required this.item,
+    required this.isRequesting,
+    required this.isRequested,
+    required this.requestLabel,
+    required this.onRequest,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AspectRatio(
+          aspectRatio: 2 / 3,
+          child: ClipRRect(
+            borderRadius: AppRadius.circular(10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColorScheme.onSurface.withAlpha(20),
+                border: Border.fromBorderSide(
+                  ThemeRegistry.active.borders.chipBorder,
+                ),
+              ),
+              child: item.posterPath != null
+                  ? CachedNetworkImage(
+                      imageUrl:
+                          'https://image.tmdb.org/t/p/w342${item.posterPath}',
+                      fit: BoxFit.cover,
+                      errorWidget: (_, _, _) => const Center(
+                        child: Icon(Icons.movie, size: 30),
+                      ),
+                    )
+                  : const Center(child: Icon(Icons.movie, size: 30)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          item.title,
+          style: TextStyle(color: AppColorScheme.onSurface, fontSize: 14),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: isRequesting || isRequested ? null : onRequest,
+            child: Text(isRequested ? '✓' : requestLabel),
+          ),
+        ),
+      ],
     );
   }
 }
