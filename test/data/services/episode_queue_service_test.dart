@@ -78,4 +78,38 @@ void main() {
     expect(episodes[0].id, 'e1');
     expect(episodes[1].indexNumber, 2);
   });
+
+  test('loadAllSeriesEpisodes omits seasonId to fetch every season', () async {
+    when(
+      () => itemsApi.getEpisodes(
+        'series-1',
+        seasonId: null,
+        fields: EpisodeQueueService.episodeOverviewFields,
+      ),
+    ).thenAnswer(
+      (_) async => {
+        'Items': [
+          {'Id': 'e1', 'Name': 'S1E1', 'ParentIndexNumber': 1, 'IndexNumber': 1},
+          {'Id': 'e2', 'Name': 'S2E1', 'ParentIndexNumber': 2, 'IndexNumber': 1},
+        ],
+      },
+    );
+
+    final episodes = await service.loadAllSeriesEpisodes(
+      client: client,
+      seriesId: 'series-1',
+      serverId: 'server-1',
+    );
+
+    verify(
+      () => itemsApi.getEpisodes(
+        'series-1',
+        seasonId: null,
+        fields: EpisodeQueueService.episodeOverviewFields,
+      ),
+    ).called(1);
+    expect(episodes, hasLength(2));
+    expect(episodes[0].parentIndexNumber, 1);
+    expect(episodes[1].parentIndexNumber, 2);
+  });
 }

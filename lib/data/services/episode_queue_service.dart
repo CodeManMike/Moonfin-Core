@@ -46,4 +46,17 @@ class EpisodeQueueService {
     final items = (data['Items'] as List?) ?? [];
     return _mapItems(items, serverId);
   }
+
+  Future<List<AggregatedItem>> loadAllSeriesEpisodes({
+    required MediaServerClient client,
+    required String seriesId,
+    required String serverId,
+  }) async {
+    return loadEpisodes(
+      client: client,
+      seriesId: seriesId,
+      serverId: serverId,
+      seasonId: null,
+    );
+  }
 }
