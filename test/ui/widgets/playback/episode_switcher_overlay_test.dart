@@ -99,4 +99,48 @@ void main() {
     expect(find.text('2. Second'), findsOneWidget);
     expect(find.text('1. Return'), findsNothing);
   });
+
+  testWidgets(
+      'tapping an episode tile invokes onEpisodeSelected with the season list',
+      (tester) async {
+    final seasons = [_season('s1', 'Season 1')];
+    final seasonEpisodes = [
+      _episode('e1', season: 1, episode: 1, name: 'Pilot'),
+      _episode('e2', season: 1, episode: 2, name: 'Second'),
+    ];
+    AggregatedItem? selected;
+    List<AggregatedItem>? selectedSeasonEpisodes;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Stack(
+            children: [
+              EpisodeSwitcherOverlay(
+                seasons: seasons,
+                initialSeasonId: 's1',
+                currentEpisodeId: 'e1',
+                episodesForSeason: (_) => seasonEpisodes,
+                imageUrlForEpisode: (_) => null,
+                onEpisodeSelected: (episode, episodesInSeason) {
+                  selected = episode;
+                  selectedSeasonEpisodes = episodesInSeason;
+                },
+                onDismiss: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('2. Second'));
+    await tester.pumpAndSettle();
+
+    expect(selected?.id, 'e2');
+    expect(selectedSeasonEpisodes, hasLength(2));
+  });
 }
