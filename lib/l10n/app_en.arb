@@ -1043,6 +1043,10 @@
   "@episodes": {
     "description": "Section header for episodes"
   },
+  "switchEpisode": "Episodes & Seasons",
+  "@switchEpisode": {
+    "description": "Tooltip for the in-player button that opens the episode/season switcher overlay"
+  },
   "nextUp": "Next Up",
   "@nextUp": {
     "description": "Section header for the next episode to watch"
