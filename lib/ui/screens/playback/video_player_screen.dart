@@ -36,6 +36,7 @@ import '../../../data/services/cast/native_cast_channel.dart';
 import '../../../data/services/cast/native_dlna_channel.dart';
 import '../../../data/services/media_segment_service.dart';
 import '../../../data/services/media_server_client_factory.dart';
+import '../../../data/services/episode_queue_service.dart';
 import '../../../data/services/theme_music_service.dart';
 import '../../../platform/pip_service.dart';
 import '../../../preference/preference_constants.dart';
@@ -57,6 +58,8 @@ import '../../widgets/track_selector_dialog.dart';
 import '../../widgets/playback/player_loading_overlay.dart';
 import '../../widgets/playback/skip_segment_overlay.dart';
 import '../../widgets/playback/next_up_overlay.dart';
+import '../../widgets/playback/episode_switcher_overlay.dart';
+import 'episode_switcher_eligibility.dart';
 import '../../widgets/playback/sleep_timer_indicator.dart';
 import '../../widgets/playback/sleep_timer_picker_dialog.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
@@ -183,6 +186,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   SleepTimerResult? _sleepTimerResult;
   bool _isNextUpAdvancing = false;
   int _consecutiveEpisodes = 0;
+
+  bool _showEpisodeSwitcher = false;
+  List<AggregatedItem> _episodeSwitcherSeasons = const [];
+  String? _episodeSwitcherSelectedSeasonId;
+  final Map<String, List<AggregatedItem>> _episodeSwitcherEpisodesBySeason = {};
+  final _episodeQueueService = EpisodeQueueService();
 
   bool _showCinemaBlackout = false;
   dynamic _previousQueueItem;
@@ -3487,6 +3496,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                             ? _tvNextUpDismissFocus
                             : null,
                       ),
+                    if (_showEpisodeSwitcher)
+                      EpisodeSwitcherOverlay(
+                        seasons: _episodeSwitcherSeasons,
+                        initialSeasonId: _episodeSwitcherSelectedSeasonId,
+                        currentEpisodeId: _itemIdForQueueItem(_queue.currentItem),
+                        episodesForSeason: _episodesForSwitcherSeason,
+                        imageUrlForEpisode: _imageUrlForSwitcherEpisode,
+                        onEpisodeSelected: (episode, seasonEpisodes) {
+                          unawaited(
+                            _handleEpisodeSwitcherSelection(episode, seasonEpisodes),
+                          );
+                        },
+                        onDismiss: _dismissEpisodeSwitcher,
+                      ),
                   ],
                 ),
               ),
@@ -4712,6 +4735,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
               size: secondaryIconSize,
               extent: secondaryExtent,
               tooltip: l10n.chapters,
+            ),
+          if (canShowEpisodeSwitcher(item))
+            _controlButton(
+              Icons.video_library_outlined,
+              onPressed: _openEpisodeSwitcher,
+              size: secondaryIconSize,
+              extent: secondaryExtent,
+              tooltip: l10n.switchEpisode,
             ),
           if (showSubtitleButton)
             _controlButton(
@@ -6229,6 +6260,129 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _manager.seekTo(Duration(microseconds: ticks ~/ 10));
     }());
     _showControls();
+  }
+
+  Future<void> _openEpisodeSwitcher() async {
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return;
+    final seriesId = item.seriesId;
+    if (seriesId == null || seriesId.isEmpty) return;
+
+    final client = _clientForItem(item);
+    final currentSeasonId = item.seasonId;
+
+    List<AggregatedItem> seasons;
+    try {
+      seasons = await _episodeQueueService.loadSeasons(
+        client: client,
+        seriesId: seriesId,
+        serverId: item.serverId,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showThrottledPlaybackError(error.toString());
+      return;
+    }
+    if (!mounted || seasons.isEmpty) return;
+
+    _episodeSwitcherEpisodesBySeason.clear();
+    setState(() {
+      _episodeSwitcherSeasons = seasons;
+      _episodeSwitcherSelectedSeasonId = currentSeasonId ?? seasons.first.id;
+      _showEpisodeSwitcher = true;
+      _controlsVisible = false;
+    });
+    _hideTimer?.cancel();
+  }
+
+  List<AggregatedItem> _episodesForSwitcherSeason(String seasonId) {
+    final cached = _episodeSwitcherEpisodesBySeason[seasonId];
+    if (cached != null) return cached;
+
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return const [];
+    final seriesId = item.seriesId;
+    if (seriesId == null || seriesId.isEmpty) return const [];
+
+    _episodeSwitcherEpisodesBySeason[seasonId] = const [];
+    unawaited(_loadEpisodesForSwitcherSeason(seriesId, seasonId, item.serverId));
+    return const [];
+  }
+
+  Future<void> _loadEpisodesForSwitcherSeason(
+    String seriesId,
+    String seasonId,
+    String serverId,
+  ) async {
+    final currentItem = _queue.currentItem;
+    if (currentItem is! AggregatedItem) return;
+    final client = _clientForItem(currentItem);
+    try {
+      final episodes = await _episodeQueueService.loadEpisodes(
+        client: client,
+        seriesId: seriesId,
+        serverId: serverId,
+        seasonId: seasonId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _episodeSwitcherEpisodesBySeason[seasonId] = episodes;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      _showThrottledPlaybackError(error.toString());
+    }
+  }
+
+  String? _imageUrlForSwitcherEpisode(AggregatedItem episode) {
+    if (episode.primaryImageTag == null) return null;
+    return _clientForItem(episode).imageApi.getPrimaryImageUrl(
+          episode.id,
+          maxWidth: 400,
+          tag: episode.primaryImageTag,
+        );
+  }
+
+  Future<void> _handleEpisodeSwitcherSelection(
+    AggregatedItem episode,
+    List<AggregatedItem> seasonEpisodes,
+  ) async {
+    _suppressBackNavigation(duration: const Duration(milliseconds: 500));
+    setState(() {
+      _showEpisodeSwitcher = false;
+    });
+
+    final currentItem = _queue.currentItem;
+    final currentEpisodeSeasonId =
+        currentItem is AggregatedItem ? currentItem.seasonId : null;
+
+    if (episode.seasonId != null &&
+        episode.seasonId == currentEpisodeSeasonId) {
+      // Same season as the live queue: jump within the existing queue,
+      // no requeue needed.
+      final existingIndex = _queue.items.indexWhere((queued) {
+        return queued is AggregatedItem && queued.id == episode.id;
+      });
+      if (existingIndex >= 0) {
+        _queue.jumpTo(existingIndex);
+        await _manager.startQueuedPlayback();
+        return;
+      }
+    }
+
+    // Different season (or not present in the live queue): full requeue.
+    // Splicing the existing queue instead of requeuing is a possible
+    // future improvement — see the plan's "Future improvement" note.
+    final startIndex = seasonEpisodes.indexWhere((e) => e.id == episode.id);
+    final idx = startIndex >= 0 ? startIndex : 0;
+    await _manager.playItems(seasonEpisodes, startIndex: idx);
+  }
+
+  void _dismissEpisodeSwitcher() {
+    _suppressBackNavigation(duration: const Duration(milliseconds: 500));
+    setState(() {
+      _showEpisodeSwitcher = false;
+    });
   }
 
   String? get _sleepTimerLabel {
