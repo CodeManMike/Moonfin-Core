@@ -43,4 +43,50 @@ void main() {
       );
     });
   });
+
+  group('shouldShowCinemaBlackout', () {
+    test('shows a blackout when the previous queue item was a preroll and the current one is not', () {
+      expect(
+        shouldShowCinemaBlackout(
+          cinemaModeEnabled: true,
+          previousItemWasPreroll: true,
+          isCurrentItemPreroll: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('does not show a blackout between two preroll items', () {
+      expect(
+        shouldShowCinemaBlackout(
+          cinemaModeEnabled: true,
+          previousItemWasPreroll: true,
+          isCurrentItemPreroll: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not show a blackout when there was no previous preroll', () {
+      expect(
+        shouldShowCinemaBlackout(
+          cinemaModeEnabled: true,
+          previousItemWasPreroll: false,
+          isCurrentItemPreroll: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not show a blackout when Cinema Mode is disabled', () {
+      expect(
+        shouldShowCinemaBlackout(
+          cinemaModeEnabled: false,
+          previousItemWasPreroll: true,
+          isCurrentItemPreroll: false,
+        ),
+        isFalse,
+      );
+    });
+  });
 }
