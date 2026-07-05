@@ -758,6 +758,9 @@ class AppLocalizationsYue extends AppLocalizations {
   String get episodes => '劇集數';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => '下一步';
 
   @override

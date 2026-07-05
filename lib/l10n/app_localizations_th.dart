@@ -780,6 +780,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get episodes => 'ตอน';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'ถัดไปขึ้นมา';
 
   @override

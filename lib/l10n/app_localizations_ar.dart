@@ -778,6 +778,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get episodes => 'الحلقات';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'التالي لأعلى';
 
   @override

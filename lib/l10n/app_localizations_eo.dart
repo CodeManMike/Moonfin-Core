@@ -782,6 +782,9 @@ class AppLocalizationsEo extends AppLocalizations {
   String get episodes => 'Epizodoj';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Sekva Supre';
 
   @override

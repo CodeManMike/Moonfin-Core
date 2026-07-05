@@ -1600,6 +1600,12 @@ abstract class AppLocalizations {
   /// **'Episodes'**
   String get episodes;
 
+  /// Tooltip for the in-player button that opens the episode/season switcher overlay
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes & Seasons'**
+  String get switchEpisode;
+
   /// Home section: next up
   ///
   /// In en, this message translates to:

@@ -786,6 +786,9 @@ class AppLocalizationsCy extends AppLocalizations {
   String get episodes => 'Penodau';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Nesaf Up';
 
   @override

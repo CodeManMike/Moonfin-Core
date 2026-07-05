@@ -762,6 +762,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get episodes => '에피소드';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => '다음';
 
   @override

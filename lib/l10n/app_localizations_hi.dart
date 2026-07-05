@@ -783,6 +783,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get episodes => 'एपिसोड';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'अगला ऊपर';
 
   @override

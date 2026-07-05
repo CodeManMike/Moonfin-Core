@@ -788,6 +788,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get episodes => 'Episode';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Berikutnya';
 
   @override

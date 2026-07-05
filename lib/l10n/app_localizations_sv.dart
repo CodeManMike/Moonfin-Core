@@ -782,6 +782,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get episodes => 'Avsnitt';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Nästa upp';
 
   @override

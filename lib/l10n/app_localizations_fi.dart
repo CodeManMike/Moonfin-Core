@@ -787,6 +787,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get episodes => 'Jaksot';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Seuraavaksi';
 
   @override

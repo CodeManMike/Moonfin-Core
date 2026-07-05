@@ -786,6 +786,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get episodes => 'Episódios';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'A Seguir';
 
   @override

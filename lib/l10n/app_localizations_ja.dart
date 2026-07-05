@@ -762,6 +762,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get episodes => 'エピソード';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => '次は次へ';
 
   @override

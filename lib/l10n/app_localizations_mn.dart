@@ -785,6 +785,9 @@ class AppLocalizationsMn extends AppLocalizations {
   String get episodes => 'Ангиуд';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Дараагийн';
 
   @override

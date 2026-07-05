@@ -783,6 +783,9 @@ class AppLocalizationsNb extends AppLocalizations {
   String get episodes => 'Episoder';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Neste opp';
 
   @override

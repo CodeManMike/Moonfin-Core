@@ -788,6 +788,9 @@ class AppLocalizationsTl extends AppLocalizations {
   String get episodes => 'Mga episode';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Next Up';
 
   @override

@@ -788,6 +788,9 @@ class AppLocalizationsKn extends AppLocalizations {
   String get episodes => 'ಸಂಚಿಕೆಗಳು';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'ಮುಂದೆ';
 
   @override

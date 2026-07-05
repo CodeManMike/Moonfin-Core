@@ -789,6 +789,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get episodes => 'tập phim';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Tiếp theo';
 
   @override

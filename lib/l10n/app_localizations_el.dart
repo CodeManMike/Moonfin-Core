@@ -792,6 +792,9 @@ class AppLocalizationsEl extends AppLocalizations {
   String get episodes => 'Επεισόδια';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Επόμενο επάνω';
 
   @override

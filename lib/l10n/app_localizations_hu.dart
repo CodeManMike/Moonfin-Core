@@ -787,6 +787,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get episodes => 'Epizódok';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Következő Fel';
 
   @override

@@ -783,6 +783,9 @@ class AppLocalizationsBg extends AppLocalizations {
   String get episodes => 'епизоди';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Следващ';
 
   @override

@@ -787,6 +787,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get episodes => 'Epizódy';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Ďalej nahor';
 
   @override

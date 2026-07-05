@@ -789,6 +789,9 @@ class AppLocalizationsMl extends AppLocalizations {
   String get episodes => 'എപ്പിസോഡുകൾ';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'അടുത്തത്';
 
   @override

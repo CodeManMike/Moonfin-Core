@@ -787,6 +787,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get episodes => 'அத்தியாயங்கள்';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'அடுத்தது';
 
   @override

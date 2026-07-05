@@ -791,6 +791,9 @@ class AppLocalizationsSw extends AppLocalizations {
   String get episodes => 'Vipindi';
 
   @override
+  String get switchEpisode => 'Episodes & Seasons';
+
+  @override
   String get nextUp => 'Inayofuata';
 
   @override
