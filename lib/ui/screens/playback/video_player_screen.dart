@@ -72,6 +72,17 @@ import '../../../playback/media3_player_backend.dart';
 import '../../../playback/tizen_player_backend.dart';
 import 'package:video_player/video_player.dart';
 
+/// Multiplier applied to a base seek step after [repeatCount] consecutive
+/// same-direction key-repeat events, shared by both D-pad arrow-key seeking
+/// and hardware fast-forward/rewind remote-button seeking so the two input
+/// paths accelerate identically under a held button.
+int seekStepMultiplierFor(int repeatCount) {
+  if (repeatCount > 18) return 12;
+  if (repeatCount > 10) return 6;
+  if (repeatCount > 4) return 2;
+  return 1;
+}
+
 class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key});
 
@@ -2873,10 +2884,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         return baseMs;
       }
       _seekRepeatCount++;
-      if (_seekRepeatCount > 18) return baseMs * 12;
-      if (_seekRepeatCount > 10) return baseMs * 6;
-      if (_seekRepeatCount > 4) return baseMs * 2;
-      return baseMs;
+      return baseMs * seekStepMultiplierFor(_seekRepeatCount);
     }
     return baseMs;
   }
@@ -3267,11 +3275,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           unawaited(_manager.previous());
           return KeyEventResult.handled;
         case LogicalKeyboardKey.mediaFastForward:
-          _seekRelative(_prefs.get(UserPreferences.skipForwardLength));
+          _seekRelative(
+            _accelerateSeekStep(
+              _prefs.get(UserPreferences.skipForwardLength),
+              event,
+            ),
+          );
           _showControls(focusSeekbar: PlatformDetection.isTV);
           return KeyEventResult.handled;
         case LogicalKeyboardKey.mediaRewind:
-          _seekRelative(-_prefs.get(UserPreferences.skipBackLength));
+          _seekRelative(
+            -_accelerateSeekStep(
+              _prefs.get(UserPreferences.skipBackLength),
+              event,
+            ),
+          );
           _showControls(focusSeekbar: PlatformDetection.isTV);
           return KeyEventResult.handled;
         default:
@@ -3305,11 +3323,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
         unawaited(_manager.previous());
         return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaFastForward:
-        _seekRelative(_prefs.get(UserPreferences.skipForwardLength));
+        _seekRelative(
+          _accelerateSeekStep(
+            _prefs.get(UserPreferences.skipForwardLength),
+            event,
+          ),
+        );
         _showControls(focusSeekbar: PlatformDetection.isTV);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaRewind:
-        _seekRelative(-_prefs.get(UserPreferences.skipBackLength));
+        _seekRelative(
+          -_accelerateSeekStep(
+            _prefs.get(UserPreferences.skipBackLength),
+            event,
+          ),
+        );
         _showControls(focusSeekbar: PlatformDetection.isTV);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowLeft:
