@@ -5,7 +5,6 @@ import 'package:server_core/server_core.dart';
 
 import 'package:moonfin/auth/repositories/session_repository.dart';
 import 'package:moonfin/data/repositories/seerr_repository.dart';
-import 'package:moonfin/data/services/seerr/seerr_api_models.dart';
 
 class _MockPreferenceStore extends Mock implements PreferenceStore {}
 

@@ -1,19 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:server_core/server_core.dart';
 
-import 'package:moonfin/auth/repositories/session_repository.dart';
 import 'package:moonfin/data/models/aggregated_item.dart';
 import 'package:moonfin/data/repositories/seerr_repository.dart';
 import 'package:moonfin/data/services/seerr/seerr_api_models.dart';
 import 'package:moonfin/ui/screens/detail/seerr_series_request_support.dart';
-
-class _MockPreferenceStore extends Mock implements PreferenceStore {}
-
-class _MockSessionRepository extends Mock implements SessionRepository {}
-
-class _MockMediaServerClient extends Mock implements MediaServerClient {}
 
 class _MockSeerrRepository extends Mock implements SeerrRepository {}
 

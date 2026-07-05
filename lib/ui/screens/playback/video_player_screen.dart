@@ -4887,20 +4887,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   ? l10n.playerTooltipUnlockOrientation
                   : l10n.playerTooltipLockLandscape,
             ),
-          _controlButton(
-            _sleepTimerActive ? Icons.bedtime : Icons.bedtime_outlined,
-            onPressed: _sleepTimerActive
-                ? _cancelSleepTimer
-                : () {
-                    unawaited(_showSleepTimerPicker());
-                  },
-            size: secondaryIconSize,
-            extent: secondaryExtent,
-            tooltip: _sleepTimerActive
-                ? l10n.sleepTimerCancel
-                : l10n.sleepTimer,
-            iconColor: _sleepTimerActive ? AppColorScheme.accent : Colors.white,
-          ),
+          if (_sleepTimerSupported)
+            _controlButton(
+              _sleepTimerActive ? Icons.bedtime : Icons.bedtime_outlined,
+              onPressed: _sleepTimerActive
+                  ? _cancelSleepTimer
+                  : () {
+                      unawaited(_showSleepTimerPicker());
+                    },
+              size: secondaryIconSize,
+              extent: secondaryExtent,
+              tooltip: _sleepTimerActive
+                  ? l10n.sleepTimerCancel
+                  : l10n.sleepTimer,
+              iconColor:
+                  _sleepTimerActive ? AppColorScheme.accent : Colors.white,
+            ),
           _controlButton(
             Icons.info_outline_rounded,
             onPressed: _showStreamInfo,
@@ -6447,6 +6449,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     setState(() {
       _showEpisodeSwitcher = false;
     });
+  }
+
+  bool get _sleepTimerSupported {
+    final item = _queue.currentItem;
+    if (item is! AggregatedItem) return false;
+    return _clientForItem(item).jellysleepApi != null;
   }
 
   String? get _sleepTimerLabel {
