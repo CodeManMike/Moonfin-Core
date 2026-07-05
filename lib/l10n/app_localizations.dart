@@ -15309,18 +15309,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel sleep timer'**
   String get sleepTimerCancel;
-
-  /// Error message shown in a SnackBar when starting the sleep timer fails
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t set sleep timer'**
-  String get sleepTimerStartError;
-
-  /// Error message shown in a SnackBar when cancelling the sleep timer fails
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t cancel sleep timer'**
-  String get sleepTimerCancelError;
 }
 
 class _AppLocalizationsDelegate

@@ -8555,10 +8555,4 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sleepTimerCancel => 'Cancel sleep timer';
-
-  @override
-  String get sleepTimerStartError => 'Couldn\'t set sleep timer';
-
-  @override
-  String get sleepTimerCancelError => 'Couldn\'t cancel sleep timer';
 }

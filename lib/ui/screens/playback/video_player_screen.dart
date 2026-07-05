@@ -62,6 +62,7 @@ import '../../widgets/playback/episode_switcher_overlay.dart';
 import 'episode_switcher_eligibility.dart';
 import '../../widgets/playback/sleep_timer_indicator.dart';
 import '../../widgets/playback/sleep_timer_picker_dialog.dart';
+import 'sleep_timer_countdown.dart';
 import '../../widgets/playback/still_watching_dialog.dart';
 import '../../widgets/playback/stream_info_dialog.dart';
 import 'cinema_mode_chrome.dart';
@@ -195,6 +196,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   bool _nextUpDismissed = false;
   bool _sleepTimerActive = false;
   SleepTimerResult? _sleepTimerResult;
+  Timer? _sleepDurationTimer;
+  int? _sleepTimerEpisodesRemaining;
   bool _isNextUpAdvancing = false;
   int _consecutiveEpisodes = 0;
 
@@ -889,6 +892,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _loadSegmentsForCurrentItem();
       _manager.suppressAutoNext = false;
       _consecutiveEpisodes++;
+      final episodesRemaining = _sleepTimerEpisodesRemaining;
+      if (episodesRemaining != null) {
+        final remaining = decrementSleepTimerEpisodes(episodesRemaining);
+        _sleepTimerEpisodesRemaining = remaining;
+        if (sleepTimerEpisodesElapsed(remaining)) {
+          unawaited(_fireSleepTimer());
+        }
+      }
       unawaited(_pushMedia3UiMetadata());
       _syncMedia3VolumeBoostLevel();
       unawaited(_syncAutoHdrSwitching());
@@ -1034,6 +1045,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _screenLockSub?.cancel();
     _completedSub?.cancel();
     _tvBackgroundExitTimer?.cancel();
+    _sleepDurationTimer?.cancel();
     _overlayFocus.dispose();
     _tvSeekbarFocus.dispose();
     _tvSkipSegmentFocus.dispose();
@@ -3518,9 +3530,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                         bottom: 180,
                         child: SleepTimerIndicator(
                           label: _sleepTimerLabel!,
-                          onCancel: () {
-                            unawaited(_cancelSleepTimer());
-                          },
+                          onCancel: _cancelSleepTimer,
                         ),
                       ),
                     if (_skipSegment != null)
@@ -4887,22 +4897,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   ? l10n.playerTooltipUnlockOrientation
                   : l10n.playerTooltipLockLandscape,
             ),
-          if (_sleepTimerSupported)
-            _controlButton(
-              _sleepTimerActive ? Icons.bedtime : Icons.bedtime_outlined,
-              onPressed: _sleepTimerActive
-                  ? _cancelSleepTimer
-                  : () {
-                      unawaited(_showSleepTimerPicker());
-                    },
-              size: secondaryIconSize,
-              extent: secondaryExtent,
-              tooltip: _sleepTimerActive
-                  ? l10n.sleepTimerCancel
-                  : l10n.sleepTimer,
-              iconColor:
-                  _sleepTimerActive ? AppColorScheme.accent : Colors.white,
-            ),
+          _controlButton(
+            _sleepTimerActive ? Icons.bedtime : Icons.bedtime_outlined,
+            onPressed: _sleepTimerActive
+                ? _cancelSleepTimer
+                : () {
+                    unawaited(_showSleepTimerPicker());
+                  },
+            size: secondaryIconSize,
+            extent: secondaryExtent,
+            tooltip: _sleepTimerActive
+                ? l10n.sleepTimerCancel
+                : l10n.sleepTimer,
+            iconColor: _sleepTimerActive ? AppColorScheme.accent : Colors.white,
+          ),
           _controlButton(
             Icons.info_outline_rounded,
             onPressed: _showStreamInfo,
@@ -6451,12 +6459,6 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     });
   }
 
-  bool get _sleepTimerSupported {
-    final item = _queue.currentItem;
-    if (item is! AggregatedItem) return false;
-    return _clientForItem(item).jellysleepApi != null;
-  }
-
   String? get _sleepTimerLabel {
     final result = _sleepTimerResult;
     if (result == null) return null;
@@ -6472,10 +6474,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   Future<void> _showSleepTimerPicker() async {
     final item = _queue.currentItem;
     if (item is! AggregatedItem) return;
-    final api = _clientForItem(item).jellysleepApi;
-    if (api == null) return;
 
-    final messenger = ScaffoldMessenger.of(context);
     final result = await SleepTimerPickerDialog.show(
       context,
       isEpisodicContent: item.type == 'Episode',
@@ -6483,21 +6482,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _suppressBackNavigation();
     if (result == null || !mounted) return;
 
-    try {
-      await api.startTimer(
-        type: result.type == SleepTimerType.duration ? 'duration' : 'episode',
-        duration: result.value,
+    _sleepDurationTimer?.cancel();
+    _sleepDurationTimer = null;
+    _sleepTimerEpisodesRemaining = null;
+    if (result.type == SleepTimerType.duration) {
+      _sleepDurationTimer = Timer(
+        Duration(minutes: result.value),
+        _fireSleepTimer,
       );
-    } catch (_) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).sleepTimerStartError),
-        ),
-      );
-      return;
+    } else {
+      _sleepTimerEpisodesRemaining = result.value;
     }
-    if (!mounted) return;
+
     setState(() {
       _sleepTimerActive = true;
       _sleepTimerResult = result;
@@ -6505,29 +6501,27 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _showControls();
   }
 
-  Future<void> _cancelSleepTimer() async {
-    final item = _queue.currentItem;
-    if (item is! AggregatedItem) return;
-    final api = _clientForItem(item).jellysleepApi;
-    if (api == null) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await api.cancelTimer();
-    } catch (_) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).sleepTimerCancelError),
-        ),
-      );
-      return;
-    }
-    if (!mounted) return;
+  void _cancelSleepTimer() {
+    _sleepDurationTimer?.cancel();
+    _sleepDurationTimer = null;
+    _sleepTimerEpisodesRemaining = null;
     setState(() {
       _sleepTimerActive = false;
       _sleepTimerResult = null;
     });
+  }
+
+  Future<void> _fireSleepTimer() async {
+    _sleepDurationTimer = null;
+    _sleepTimerEpisodesRemaining = null;
+    if (mounted) {
+      setState(() {
+        _sleepTimerActive = false;
+        _sleepTimerResult = null;
+      });
+    }
+    _manager.pause();
+    await SystemNavigator.pop();
   }
 
   bool _hasCastCrew(dynamic item) {

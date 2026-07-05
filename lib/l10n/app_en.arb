@@ -7889,13 +7889,5 @@
   "sleepTimerCancel": "Cancel sleep timer",
   "@sleepTimerCancel": {
     "description": "Tooltip/label for the affordance that cancels an active sleep timer"
-  },
-  "sleepTimerStartError": "Couldn't set sleep timer",
-  "@sleepTimerStartError": {
-    "description": "Error message shown in a SnackBar when starting the sleep timer fails"
-  },
-  "sleepTimerCancelError": "Couldn't cancel sleep timer",
-  "@sleepTimerCancelError": {
-    "description": "Error message shown in a SnackBar when cancelling the sleep timer fails"
   }
 }
