@@ -655,7 +655,8 @@ class _ContentRowsState extends State<_ContentRows>
   static const _previewOpenTimeout = Duration(seconds: 10);
   static const _pinTransitionDistance = 96.0;
   static const _previewStartDelay = Duration(milliseconds: 1200);
-  static const _focusHandoffDuration = Duration(milliseconds: 220);
+  static const _verticalNavDebounceDuration = Duration(milliseconds: 90);
+  static const _focusHandoffDuration = Duration(milliseconds: 140);
   static const _focusHandoffCurve = Curves.easeInOutCubic;
   static const _mediaBarFadeDuration = Duration(milliseconds: 220);
 
@@ -2358,7 +2359,7 @@ class _ContentRowsState extends State<_ContentRows>
     final now = DateTime.now();
     if (_lastVerticalNavAt != null &&
         now.difference(_lastVerticalNavAt!) <
-            const Duration(milliseconds: 140)) {
+            _verticalNavDebounceDuration) {
       return false;
     }
     _lastVerticalNavAt = now;
