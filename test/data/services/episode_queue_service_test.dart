@@ -43,4 +43,39 @@ void main() {
     expect(seasons[0].name, 'Season 1');
     expect(seasons[1].id, 's2');
   });
+
+  test('loadEpisodes passes seasonId and overview fields through', () async {
+    when(
+      () => itemsApi.getEpisodes(
+        'series-1',
+        seasonId: 'season-2',
+        fields: EpisodeQueueService.episodeOverviewFields,
+      ),
+    ).thenAnswer(
+      (_) async => {
+        'Items': [
+          {'Id': 'e1', 'Name': 'Episode 1', 'IndexNumber': 1},
+          {'Id': 'e2', 'Name': 'Episode 2', 'IndexNumber': 2},
+        ],
+      },
+    );
+
+    final episodes = await service.loadEpisodes(
+      client: client,
+      seriesId: 'series-1',
+      seasonId: 'season-2',
+      serverId: 'server-1',
+    );
+
+    verify(
+      () => itemsApi.getEpisodes(
+        'series-1',
+        seasonId: 'season-2',
+        fields: EpisodeQueueService.episodeOverviewFields,
+      ),
+    ).called(1);
+    expect(episodes, hasLength(2));
+    expect(episodes[0].id, 'e1');
+    expect(episodes[1].indexNumber, 2);
+  });
 }
