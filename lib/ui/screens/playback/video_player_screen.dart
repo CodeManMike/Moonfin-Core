@@ -6352,12 +6352,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _showEpisodeSwitcher = false;
     });
 
-    final currentItem = _queue.currentItem;
-    final currentEpisodeSeasonId =
-        currentItem is AggregatedItem ? currentItem.seasonId : null;
-
-    if (episode.seasonId != null &&
-        episode.seasonId == currentEpisodeSeasonId) {
+    if (isSameSeasonAsCurrentQueue(episode, _queue.currentItem)) {
       // Same season as the live queue: jump within the existing queue,
       // no requeue needed.
       final existingIndex = _queue.items.indexWhere((queued) {
