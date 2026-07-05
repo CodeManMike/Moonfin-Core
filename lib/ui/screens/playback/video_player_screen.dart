@@ -183,6 +183,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   SleepTimerResult? _sleepTimerResult;
   bool _isNextUpAdvancing = false;
   int _consecutiveEpisodes = 0;
+
+  bool _showCinemaBlackout = false;
+  dynamic _previousQueueItem;
   StreamSubscription? _positionSub;
   StreamSubscription? _queueSub;
   StreamSubscription<PlayerBackend>? _backendSub;
@@ -762,6 +765,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   @override
   void initState() {
     super.initState();
+    _previousQueueItem = _queue.currentItem;
     _screensaverController.setPlaybackActive(true);
     _screensaverPlayingSub = _state.playingStream.listen(
       _screensaverController.setPlaybackActive,
@@ -869,6 +873,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _syncMedia3VolumeBoostLevel();
       unawaited(_syncAutoHdrSwitching());
       final isPreroll = _isCurrentPreroll;
+      final wasPreroll = _isPrerollQueueItem(_previousQueueItem);
+      final showBlackout = shouldShowCinemaBlackout(
+        cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
+        previousItemWasPreroll: wasPreroll,
+        isCurrentItemPreroll: isPreroll,
+      );
+      _previousQueueItem = _queue.currentItem;
       setState(() {
         _nextUpDismissed = false;
         _showNextUp = false;
@@ -877,9 +888,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
           _controlsVisible = false;
           _isOsdLocked = false;
         }
+        if (showBlackout) {
+          _showCinemaBlackout = true;
+        }
       });
       if (isPreroll) {
         _hideTimer?.cancel();
+      }
+      if (showBlackout) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _showCinemaBlackout = false);
+        });
       }
     });
 
@@ -3391,7 +3411,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                   children: [
                     _buildVideoSurface(),
                     _buildBringupOverlay(context),
-                    if (_isRestoringPosition)
+                    if (_isRestoringPosition || _showCinemaBlackout)
                       const Positioned.fill(
                         child: ColoredBox(color: Colors.black),
                       ),
