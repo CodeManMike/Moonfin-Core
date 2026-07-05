@@ -121,6 +121,15 @@ class TmdbRepository {
     }
   }
 
+  Future<Map<String, dynamic>?> getCollection(int tmdbCollectionId) async {
+    try {
+      return await _get('/Moonfin/Tmdb/Collection/$tmdbCollectionId', const {});
+    } catch (e) {
+      debugPrint('[Moonfin] TMDB collection fetch failed: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> _get(
     String path,
     Map<String, dynamic> query,
