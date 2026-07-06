@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
 import 'package:server_core/server_core.dart';
 
@@ -10,6 +11,7 @@ class SeerrRepository {
   final PreferenceStore _store;
   final SessionRepository _session;
   final MediaServerClient _client;
+  final Dio? _testDio;
 
   SeerrHttpClient? _httpClient;
   bool _initialized = false;
@@ -25,7 +27,8 @@ class SeerrRepository {
   bool get isAvailable => _isAvailable;
   bool get isMoonfinMode => _isMoonfinMode;
 
-  SeerrRepository(this._store, this._session, this._client);
+  SeerrRepository(this._store, this._session, this._client, {Dio? testDio})
+    : _testDio = testDio;
 
   String _userKey(String key) {
     final uid = _session.activeUserId ?? '';
@@ -107,7 +110,7 @@ class SeerrRepository {
 
   void _initClient(MoonfinProxyConfig proxyConfig) {
     _httpClient?.close();
-    _httpClient = SeerrHttpClient(proxyConfig: proxyConfig);
+    _httpClient = SeerrHttpClient(proxyConfig: proxyConfig, dio: _testDio);
   }
 
   Future<T> _withClient<T>(

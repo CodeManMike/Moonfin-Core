@@ -12,8 +12,8 @@ class SeerrHttpClient {
 
   late final Dio _dio;
 
-  SeerrHttpClient({required this.proxyConfig}) {
-    _dio = Dio(BaseOptions(
+  SeerrHttpClient({required this.proxyConfig, Dio? dio}) {
+    _dio = dio ?? Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
