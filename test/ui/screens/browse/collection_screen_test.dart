@@ -191,5 +191,9 @@ void main() {
 
     expect(find.text('Return of the Jedi'), findsOneWidget);
     expect(find.text(AppLocalizations.of(tester.element(find.byType(CollectionScreen))).request), findsOneWidget);
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(CollectionScreen)));
+    expect(find.text(l10n.missing), findsOneWidget);
+    expect(find.text(l10n.collections), findsNothing);
   });
 }

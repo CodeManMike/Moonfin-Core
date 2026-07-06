@@ -261,7 +261,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.collections,
+            l10n.missing,
             style: TextStyle(
               color: AppColorScheme.onSurface,
               fontSize: 16,
