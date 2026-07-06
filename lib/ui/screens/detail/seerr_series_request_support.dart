@@ -12,6 +12,7 @@ Future<SeerrTvDetails?> resolveSeriesForSeerrRequest({
   required bool seerrAvailable,
   required SeerrRepository repository,
 }) async {
+  if (item.type != 'Series') return null;
   if (!seerrAvailable) return null;
 
   final tvdbRaw = item.providerIds['Tvdb'];

@@ -10,6 +10,30 @@ class _MockSeerrRepository extends Mock implements SeerrRepository {}
 
 void main() {
   group('resolveSeriesForSeerrRequest', () {
+    test(
+      'returns null and skips the repository for non-Series items',
+      () async {
+        final repo = _MockSeerrRepository();
+        final item = AggregatedItem(
+          id: 'movie-1',
+          serverId: 'server-1',
+          rawData: const {
+            'Type': 'Movie',
+            'ProviderIds': {'Tvdb': '12345'},
+          },
+        );
+
+        final result = await resolveSeriesForSeerrRequest(
+          item: item,
+          seerrAvailable: true,
+          repository: repo,
+        );
+
+        expect(result, isNull);
+        verifyNever(() => repo.resolveTvdbToSeerrTv(any()));
+      },
+    );
+
     test('returns null when the series has no TVDB provider id', () async {
       final repo = _MockSeerrRepository();
       final item = AggregatedItem(

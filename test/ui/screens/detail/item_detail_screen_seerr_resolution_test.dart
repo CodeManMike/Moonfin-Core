@@ -9,30 +9,32 @@ import 'package:moonfin/ui/screens/detail/seerr_series_request_support.dart';
 class _MockSeerrRepository extends Mock implements SeerrRepository {}
 
 void main() {
-  test('resolveSeriesForSeerrRequest is skipped for non-Series items', () async {
-    final repo = _MockSeerrRepository();
-    final item = AggregatedItem(
-      id: 'movie-1',
-      serverId: 'server-1',
-      rawData: const {
-        'Type': 'Movie',
-        'ProviderIds': {'Tvdb': '12345'},
-      },
-    );
+  test(
+    'resolveSeriesForSeerrRequest is skipped for non-Series items',
+    () async {
+      final repo = _MockSeerrRepository();
+      final item = AggregatedItem(
+        id: 'movie-1',
+        serverId: 'server-1',
+        rawData: const {
+          'Type': 'Movie',
+          'ProviderIds': {'Tvdb': '12345'},
+        },
+      );
 
-    // The screen only calls the resolver for Series items; a Movie should
-    // never reach the repository. This documents the caller-side guard that
-    // item_detail_screen.dart applies before invoking the shared helper.
-    if (item.type == 'Series') {
-      await resolveSeriesForSeerrRequest(
+      // resolveSeriesForSeerrRequest itself guards on item.type, so a Movie
+      // must never reach the repository, regardless of any caller-side check
+      // in item_detail_screen.dart's _loadSeerrSeriesResolution.
+      final result = await resolveSeriesForSeerrRequest(
         item: item,
         seerrAvailable: true,
         repository: repo,
       );
-    }
 
-    verifyNever(() => repo.resolveTvdbToSeerrTv(any()));
-  });
+      expect(result, isNull);
+      verifyNever(() => repo.resolveTvdbToSeerrTv(any()));
+    },
+  );
 
   test('resolveSeriesForSeerrRequest resolves for a Series item', () async {
     final repo = _MockSeerrRepository();
@@ -49,14 +51,11 @@ void main() {
       () => repo.resolveTvdbToSeerrTv(12345),
     ).thenAnswer((_) async => tvDetails);
 
-    SeerrTvDetails? result;
-    if (item.type == 'Series') {
-      result = await resolveSeriesForSeerrRequest(
-        item: item,
-        seerrAvailable: true,
-        repository: repo,
-      );
-    }
+    final result = await resolveSeriesForSeerrRequest(
+      item: item,
+      seerrAvailable: true,
+      repository: repo,
+    );
 
     expect(result, same(tvDetails));
   });
