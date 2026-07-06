@@ -87,6 +87,12 @@ class RowDataSource {
   /// Again, Genre, Latest Movies/Shows, etc.) are surfaced.
   static const _excludedHomeScreenSectionRoutes = {'discover'};
 
+  /// Prepared for a future admin/in-app HSS section-picker UI, which the
+  /// home-screen-sections-integration plan explicitly scopes as future work
+  /// ("wiring the picker UI itself is out of scope for this plan"). Has no
+  /// caller yet by design, not by oversight - see
+  /// docs/superpowers/plans/2026-07-02-home-screen-sections-integration.md,
+  /// Task 5.
   static List<Map<String, dynamic>> filterDiscoverableHomeScreenSections(
     List<Map<String, dynamic>> sections,
   ) {
