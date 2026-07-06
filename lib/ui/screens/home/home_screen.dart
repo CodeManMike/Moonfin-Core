@@ -4602,7 +4602,9 @@ class _ContentRowsState extends State<_ContentRows>
         'favorites_songs' => HomeSectionType.favoriteSongs,
         _ => HomeSectionType.latestMedia,
       },
-      HomeRowType.collections => HomeSectionType.collections,
+      HomeRowType.collections => row.id == 'acdbCollections'
+          ? HomeSectionType.acdbCollections
+          : HomeSectionType.collections,
       HomeRowType.genres => HomeSectionType.genres,
       HomeRowType.libraryTiles => HomeSectionType.libraryTilesSmall,
       HomeRowType.playlists => HomeSectionType.playlists,

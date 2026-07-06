@@ -83,7 +83,8 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   static bool _isCollectionsSectionType(HomeSectionType type) {
-    return type == HomeSectionType.collections;
+    return type == HomeSectionType.collections ||
+        type == HomeSectionType.acdbCollections;
   }
 
   static bool _isGenresSectionType(HomeSectionType type) {
@@ -551,10 +552,12 @@ class HomeViewModel extends ChangeNotifier {
             row.id == _favoriteRowIdForSection(cfg.type);
       case HomeSectionType.collections:
         // Only claim the single aggregated collections row (id == 'collections').
-        // Individual per-collection plugin rows have stableId-based IDs and
-        // must NOT be claimed by the built-in section.
-        return row.rowType == HomeRowType.collections &&
-            !row.id.startsWith('pluginDynamic:');
+        // Individual per-collection plugin rows have stableId-based IDs, and
+        // the ACdb tag-filtered row has its own dedicated id/section, so both
+        // must NOT be claimed by the generic built-in section.
+        return row.id == 'collections';
+      case HomeSectionType.acdbCollections:
+        return row.id == 'acdbCollections';
       case HomeSectionType.genres:
         return row.rowType == HomeRowType.genres &&
             !row.id.startsWith('pluginDynamic:');
@@ -781,6 +784,8 @@ class HomeViewModel extends ChangeNotifier {
         return const {'favoriteSongs'};
       case HomeSectionType.collections:
         return const {'collections'};
+      case HomeSectionType.acdbCollections:
+        return const {'acdbCollections'};
       case HomeSectionType.genres:
         return const {'genres'};
       case HomeSectionType.activeRecordings:
@@ -1002,6 +1007,18 @@ class HomeViewModel extends ChangeNotifier {
                   sortBy: collectionsSortBy,
                   sortOrder: sortOrder,
                 ),
+        ];
+      case HomeSectionType.acdbCollections:
+        // ACdb tag-filtering is not yet supported by multi-server
+        // aggregation; only surface it for the single active server.
+        if (_multiServerEnabled) return [];
+        return [
+          await _dataSource.loadAcdbCollections(
+            _serverId,
+            tag: RowDataSource.acdbCollectionsTag,
+            sortBy: collectionsSortBy,
+            sortOrder: sortOrder,
+          ),
         ];
       case HomeSectionType.genres:
         return [
@@ -1353,6 +1370,13 @@ class HomeViewModel extends ChangeNotifier {
         return HomeRow(
           id: 'collections',
           title: l10n.collections,
+          rowType: HomeRowType.collections,
+          isLoading: true,
+        );
+      case HomeSectionType.acdbCollections:
+        return const HomeRow(
+          id: 'acdbCollections',
+          title: 'ACdb Collections',
           rowType: HomeRowType.collections,
           isLoading: true,
         );

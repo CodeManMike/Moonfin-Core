@@ -213,6 +213,11 @@ class HomeSectionConfig {
       order: 10,
     ),
     HomeSectionConfig(
+      type: HomeSectionType.acdbCollections,
+      enabled: false,
+      order: 32,
+    ),
+    HomeSectionConfig(
       type: HomeSectionType.favoriteMovies,
       enabled: false,
       order: 11,

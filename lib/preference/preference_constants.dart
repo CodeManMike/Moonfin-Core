@@ -283,6 +283,7 @@ enum HomeSectionType {
   favoriteAlbums('favoritealbums'),
   favoriteSongs('favoritesongs'),
   collections('collections'),
+  acdbCollections('acdbcollections'),
   genres('genres'),
   liveTv('livetv'),
   seerrRecentRequests('seerr_recent_requests'),

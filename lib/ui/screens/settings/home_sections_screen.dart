@@ -11,6 +11,7 @@ import 'package:server_core/server_core.dart';
 import '../../../data/models/aggregated_item.dart';
 import '../../../data/utils/playlist_utils.dart';
 import '../../../data/services/plugin_sync_service.dart';
+import '../../../data/services/row_data_source.dart';
 import '../../../preference/home_section_config.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
@@ -239,6 +240,20 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
               } catch (_) {}
             }());
             break;
+          case HomeSectionType.acdbCollections:
+            tasks.add(() async {
+              try {
+                final response = await client.itemsApi.getItems(
+                  includeItemTypes: const ['BoxSet'],
+                  tags: const [RowDataSource.acdbCollectionsTag],
+                  limit: 1,
+                  recursive: true,
+                );
+                final total = response['TotalRecordCount'] as int? ?? 0;
+                setEmpty(stableId, total == 0);
+              } catch (_) {}
+            }());
+            break;
           case HomeSectionType.genres:
             tasks.add(() async {
               try {
@@ -441,7 +456,8 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
   }
 
   bool _isCollectionsSectionType(HomeSectionType type) {
-    return type == HomeSectionType.collections;
+    return type == HomeSectionType.collections ||
+        type == HomeSectionType.acdbCollections;
   }
 
   bool _isGenresSectionType(HomeSectionType type) {
@@ -480,7 +496,8 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
       return 7;
     }
     // is builtin
-    if (section.type == HomeSectionType.collections) {
+    if (section.type == HomeSectionType.collections ||
+        section.type == HomeSectionType.acdbCollections) {
       return 2;
     }
     if (_isFavoriteSectionType(section.type)) {
@@ -1335,6 +1352,7 @@ class _HomeSectionsScreenState extends State<HomeSectionsScreen> {
         HomeSectionType.favoriteSongs =>
           'Favorite ${FavoriteTypeFilter.audio.displayName}',
         HomeSectionType.collections => l10n.collections,
+        HomeSectionType.acdbCollections => 'ACdb Collections',
         HomeSectionType.genres => l10n.genres,
         HomeSectionType.liveTv => l10n.liveTV,
         HomeSectionType.seerrRecentRequests => l10n.recentRequests,

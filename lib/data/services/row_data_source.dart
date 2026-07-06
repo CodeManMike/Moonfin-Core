@@ -32,6 +32,11 @@ class RowDataSource {
   static const _defaultSortOrder = 'Ascending';
   static const _genreArtworkConcurrency = 6;
 
+  /// Tag assigned by ACdb.tv (via its optional tagging feature) to BoxSets it
+  /// manages. Users configure this same tag value on acdb.tv's own admin UI;
+  /// this is the convention documented in the collections/ACdb design spec.
+  static const acdbCollectionsTag = 'acdb';
+
   static const _fields =
       'DateCreated,Type,UserData,Overview,Genres,CommunityRating,CriticRating,'
       'OfficialRating,RunTimeTicks,ProductionYear,SeriesName,'

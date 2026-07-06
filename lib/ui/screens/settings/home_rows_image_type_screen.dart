@@ -85,6 +85,7 @@ class _HomeRowsImageTypeScreenState extends State<HomeRowsImageTypeScreen> {
         HomeSectionType.favoriteSongs =>
           'Favorite ${FavoriteTypeFilter.audio.displayName}',
         HomeSectionType.collections => l10n.collections,
+        HomeSectionType.acdbCollections => 'ACdb Collections',
         HomeSectionType.genres => l10n.genres,
         HomeSectionType.liveTv => l10n.liveTV,
         HomeSectionType.seerrRecentRequests => l10n.recentRequests,

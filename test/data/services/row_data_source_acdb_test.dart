@@ -50,4 +50,8 @@ void main() {
     expect(row.items.length, 1);
     expect(row.items.first.id, 'box-1');
   });
+
+  test('acdbCollectionsTag constant matches the documented ACdb.tv tag convention', () {
+    expect(RowDataSource.acdbCollectionsTag, 'acdb');
+  });
 }

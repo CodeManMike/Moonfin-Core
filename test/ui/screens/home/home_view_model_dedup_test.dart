@@ -121,5 +121,24 @@ void main() {
         equals(const {'latestMedia'}),
       );
     });
+
+    test('acdbCollections builtin config has its own distinct dedup key', () {
+      const acdbConfig = HomeSectionConfig(
+        kind: HomeSectionKind.builtin,
+        type: HomeSectionType.acdbCollections,
+      );
+      const collectionsConfig = HomeSectionConfig(
+        kind: HomeSectionKind.builtin,
+        type: HomeSectionType.collections,
+      );
+
+      final acdbKeys = HomeViewModel.duplicateKeysForConfig(acdbConfig);
+      final collectionsKeys = HomeViewModel.duplicateKeysForConfig(
+        collectionsConfig,
+      );
+
+      expect(acdbKeys, equals(const {'acdbCollections'}));
+      expect(acdbKeys, isNot(equals(collectionsKeys)));
+    });
   });
 }
