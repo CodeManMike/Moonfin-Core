@@ -10,14 +10,14 @@ class TmdbRepository {
 
   final MediaServerClient _client;
 
-  final _dio = Dio();
+  final Dio _dio;
 
   final _episodeCache = <String, double>{};
   final _seasonCache = <String, Map<int, double>>{};
   final _pendingEpisodes = <String, Completer<double?>>{};
   final _pendingSeasons = <String, Completer<Map<int, double>?>>{};
 
-  TmdbRepository(this._client);
+  TmdbRepository(this._client, {Dio? dio}) : _dio = dio ?? Dio();
 
   Future<double?> getEpisodeRating({
     required String tmdbId,
