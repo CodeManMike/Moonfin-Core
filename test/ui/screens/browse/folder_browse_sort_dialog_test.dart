@@ -2,68 +2,141 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_preference/jellyfin_preference.dart';
-import 'package:moonfin/data/viewmodels/folder_browse_view_model.dart';
-import 'package:moonfin/l10n/app_localizations.dart';
-import 'package:moonfin/preference/preference_constants.dart';
-import 'package:moonfin/preference/user_preferences.dart';
-import 'package:moonfin/ui/widgets/focus/focusable_toolbar_button.dart';
-import 'package:moonfin/ui/widgets/overlay_sheet.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:playback_core/playback_core.dart';
+import 'package:server_core/server_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// The real FolderBrowseScreen wires its FolderBrowseViewModel up to a
-// MediaServerClient resolved via GetIt, which has no established widget-test
-// harness in this repo. FolderBrowseViewModel.forTesting lets us exercise
-// the same sort-picker UI (toolbar button -> dialog -> setSortBy) without
-// that dependency, by rebuilding the same minimal widget tree the real
-// screen assembles for its toolbar + sort dialog.
-Future<UserPreferences> _prefs([Map<String, Object> initial = const {}]) async {
-  SharedPreferences.setMockInitialValues(initial);
-  final store = PreferenceStore();
-  await store.init();
-  return UserPreferences(store);
-}
+import 'package:moonfin/auth/repositories/session_repository.dart';
+import 'package:moonfin/auth/repositories/user_repository.dart';
+import 'package:moonfin/data/repositories/user_views_repository.dart';
+import 'package:moonfin/data/services/media_server_client_factory.dart';
+import 'package:moonfin/data/services/plugin_sync_service.dart';
+import 'package:moonfin/l10n/app_localizations.dart';
+import 'package:moonfin/preference/preference_constants.dart';
+import 'package:moonfin/preference/seerr_preferences.dart';
+import 'package:moonfin/preference/user_preferences.dart';
+import 'package:moonfin/ui/screens/browse/folder_browse_screen.dart';
+
+class MockMediaServerClient extends Mock implements MediaServerClient {}
+class MockItemsApi extends Mock implements ItemsApi {}
+class MockImageApi extends Mock implements ImageApi {}
+class MockUserViewsApi extends Mock implements UserViewsApi {}
+class MockSessionRepository extends Mock implements SessionRepository {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late MockMediaServerClient client;
+  late MockItemsApi itemsApi;
+  late UserPreferences prefs;
+
+  setUp(() async {
+    client = MockMediaServerClient();
+    itemsApi = MockItemsApi();
+    when(() => client.itemsApi).thenReturn(itemsApi);
+    when(() => client.imageApi).thenReturn(MockImageApi());
+    when(() => client.baseUrl).thenReturn('https://example.test');
+
+    when(() => itemsApi.getItem(any(), mediaSourceId: any(named: 'mediaSourceId')))
+        .thenAnswer((_) async => {'Name': 'Folder', 'Id': 'folder-123'});
+    when(() => itemsApi.getItems(
+          parentId: any(named: 'parentId'),
+          recursive: any(named: 'recursive'),
+          sortBy: any(named: 'sortBy'),
+          sortOrder: any(named: 'sortOrder'),
+          startIndex: any(named: 'startIndex'),
+          limit: any(named: 'limit'),
+          fields: any(named: 'fields'),
+          enableImageTypes: any(named: 'enableImageTypes'),
+          imageTypeLimit: any(named: 'imageTypeLimit'),
+          enableTotalRecordCount: any(named: 'enableTotalRecordCount'),
+        )).thenAnswer((_) async => {
+          'Items': [
+            {'Id': 'item-1', 'Name': 'Movie One', 'Type': 'Movie'},
+          ],
+          'TotalRecordCount': 1,
+        });
+
+    if (GetIt.instance.isRegistered<MediaServerClient>()) {
+      GetIt.instance.unregister<MediaServerClient>();
+    }
+    GetIt.instance.registerSingleton<MediaServerClient>(client);
+    if (GetIt.instance.isRegistered<MediaServerClientFactory>()) {
+      GetIt.instance.unregister<MediaServerClientFactory>();
+    }
+    GetIt.instance.registerSingleton<MediaServerClientFactory>(
+      MediaServerClientFactory(
+        deviceInfo: const DeviceInfo(
+          id: 'test',
+          name: 'test',
+          appName: 'test',
+          appVersion: '1.0',
+        ),
+      ),
+    );
+
+    if (GetIt.instance.isRegistered<UserPreferences>()) {
+      GetIt.instance.unregister<UserPreferences>();
+    }
+    SharedPreferences.setMockInitialValues(const {});
+    final store = PreferenceStore();
+    await store.init();
+    prefs = UserPreferences(store);
+    GetIt.instance.registerSingleton<UserPreferences>(prefs);
+
+    if (GetIt.instance.isRegistered<PlaybackManager>()) {
+      GetIt.instance.unregister<PlaybackManager>();
+    }
+    GetIt.instance.registerSingleton<PlaybackManager>(PlaybackManager());
+
+    if (GetIt.instance.isRegistered<UserRepository>()) {
+      GetIt.instance.unregister<UserRepository>();
+    }
+    GetIt.instance.registerSingleton<UserRepository>(UserRepository());
+
+    final userViewsApi = MockUserViewsApi();
+    when(() => userViewsApi.getUserViews())
+        .thenAnswer((_) async => {'Items': []});
+    when(() => client.userViewsApi).thenReturn(userViewsApi);
+    if (GetIt.instance.isRegistered<UserViewsRepository>()) {
+      GetIt.instance.unregister<UserViewsRepository>();
+    }
+    GetIt.instance.registerSingleton<UserViewsRepository>(
+      UserViewsRepository(client),
+    );
+
+    if (GetIt.instance.isRegistered<PluginSyncService>()) {
+      GetIt.instance.unregister<PluginSyncService>();
+    }
+    GetIt.instance.registerSingleton<PluginSyncService>(
+      PluginSyncService(GetIt.instance<UserPreferences>(), store),
+    );
+
+    final sessionRepository = MockSessionRepository();
+    when(() => sessionRepository.activeUserId).thenReturn('user-1');
+    if (GetIt.instance.isRegistered<SeerrPreferences>()) {
+      GetIt.instance.unregister<SeerrPreferences>();
+    }
+    GetIt.instance.registerSingleton<SeerrPreferences>(
+      SeerrPreferences(store, sessionRepository),
+    );
+  });
+
+  tearDown(() => GetIt.instance.reset());
+
   testWidgets(
-    'tapping the sort button opens a dialog; picking an option calls setSortBy and closes it',
+    'tapping the sort button opens the real dialog; picking an option calls '
+    'setSortBy, persists the preference, and closes the dialog',
     (WidgetTester tester) async {
-      final prefs = await _prefs();
-      final vm = FolderBrowseViewModel.forTesting(
-        prefs: prefs,
-        folderId: 'folder-123',
-      );
-      addTearDown(vm.dispose);
-
-      // FocusableToolbarButton resolves the user's focus-color preference
-      // via GetIt<UserPreferences>; register the same instance so the
-      // widget under test can build.
-      GetIt.instance.registerSingleton<UserPreferences>(prefs);
-      addTearDown(() => GetIt.instance.unregister<UserPreferences>());
-
-      expect(vm.sortBy, LibrarySortBy.name);
-
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => FocusableToolbarButton(
-                icon: Icons.sort,
-                onTap: () {
-                  showFocusRestoringDialog(
-                    context: context,
-                    useRootNavigator: false,
-                    builder: (_) => _TestFolderSortDialog(vm: vm),
-                  );
-                },
-              ),
-            ),
-          ),
+          home: const FolderBrowseScreen(folderId: 'folder-123'),
         ),
       );
+      await tester.pumpAndSettle();
 
       // Sort button is present and reachable.
       expect(find.byIcon(Icons.sort), findsOneWidget);
@@ -71,49 +144,37 @@ void main() {
       await tester.tap(find.byIcon(Icons.sort));
       await tester.pumpAndSettle();
 
-      // Dialog opened, listing every LibrarySortBy option.
+      // The real _FolderSortDialog opened, listing every LibrarySortBy option.
       expect(find.text('Date Added'), findsOneWidget);
 
       await tester.tap(find.text('Date Added'));
       await tester.pumpAndSettle();
 
-      expect(vm.sortBy, LibrarySortBy.dateAdded);
       expect(
         prefs.get(UserPreferences.folderBrowseSortBy('folder-123')),
         LibrarySortBy.dateAdded,
       );
 
-      // Dialog closes after selection.
+      // The real dialog closes after selection.
       expect(find.text('Date Added'), findsNothing);
+
+      // setSortBy triggered a reload sorted by the new option.
+      final verification = verify(() => itemsApi.getItems(
+            parentId: any(named: 'parentId'),
+            recursive: any(named: 'recursive'),
+            sortBy: captureAny(named: 'sortBy'),
+            sortOrder: any(named: 'sortOrder'),
+            startIndex: any(named: 'startIndex'),
+            limit: any(named: 'limit'),
+            fields: any(named: 'fields'),
+            enableImageTypes: any(named: 'enableImageTypes'),
+            imageTypeLimit: any(named: 'imageTypeLimit'),
+            enableTotalRecordCount: any(named: 'enableTotalRecordCount'),
+          ));
+      expect(
+        verification.captured.last,
+        'IsFolder,${LibrarySortBy.dateAdded.apiValue}',
+      );
     },
   );
-}
-
-/// Mirrors _FolderSortDialog from folder_browse_screen.dart (private to that
-/// library) closely enough to prove the toolbar-button -> dialog -> setSortBy
-/// wiring behaves as intended, without needing GetIt/MediaServerClient DI.
-class _TestFolderSortDialog extends StatelessWidget {
-  final FolderBrowseViewModel vm;
-
-  const _TestFolderSortDialog({required this.vm});
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          for (final option in LibrarySortBy.values)
-            ListTile(
-              title: Text(option.displayName),
-              selected: vm.sortBy == option,
-              onTap: () {
-                vm.setSortBy(option);
-                Navigator.of(context).pop();
-              },
-            ),
-        ],
-      ),
-    );
-  }
 }
