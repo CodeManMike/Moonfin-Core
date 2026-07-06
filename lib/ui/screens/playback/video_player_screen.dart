@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -209,6 +209,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   bool _showCinemaBlackout = false;
   dynamic _previousQueueItem;
+  int _previousQueueIndex = -1;
   StreamSubscription? _positionSub;
   StreamSubscription? _queueSub;
   StreamSubscription<PlayerBackend>? _backendSub;
@@ -789,6 +790,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   void initState() {
     super.initState();
     _previousQueueItem = _queue.currentItem;
+    _previousQueueIndex = _queue.currentIndex;
     _screensaverController.setPlaybackActive(true);
     _screensaverPlayingSub = _state.playingStream.listen(
       _screensaverController.setPlaybackActive,
@@ -892,8 +894,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
       _loadSegmentsForCurrentItem();
       _manager.suppressAutoNext = false;
       _consecutiveEpisodes++;
+      final isForwardAdvance = isForwardEpisodeAdvance(
+        previousIndex: _previousQueueIndex,
+        newIndex: _queue.currentIndex,
+        queueLength: _queue.length,
+        isRepeatAll: _queue.repeatMode == RepeatMode.repeatAll,
+      );
+      _previousQueueIndex = _queue.currentIndex;
       final episodesRemaining = _sleepTimerEpisodesRemaining;
-      if (episodesRemaining != null) {
+      if (episodesRemaining != null && isForwardAdvance) {
         final remaining = decrementSleepTimerEpisodes(episodesRemaining);
         _sleepTimerEpisodesRemaining = remaining;
         if (sleepTimerEpisodesElapsed(remaining)) {
@@ -6462,13 +6471,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   String? get _sleepTimerLabel {
     final result = _sleepTimerResult;
     if (result == null) return null;
-    final l10n = AppLocalizations.of(context);
-    switch (result.type) {
-      case SleepTimerType.duration:
-        return l10n.sleepTimerActiveDuration(result.value);
-      case SleepTimerType.episode:
-        return l10n.sleepTimerActiveEpisode(result.value);
-    }
+    return sleepTimerLabelFor(AppLocalizations.of(context), result);
   }
 
   Future<void> _showSleepTimerPicker() async {

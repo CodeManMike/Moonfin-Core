@@ -12,6 +12,20 @@ class SleepTimerResult {
   const SleepTimerResult({required this.type, required this.value});
 }
 
+/// Formats the label shown in the active sleep timer indicator for [result].
+///
+/// Extracted as a standalone function (rather than inlined where it's used)
+/// so it can be unit-tested directly without needing a live [BuildContext]
+/// or the full player screen widget tree.
+String sleepTimerLabelFor(AppLocalizations l10n, SleepTimerResult result) {
+  switch (result.type) {
+    case SleepTimerType.duration:
+      return l10n.sleepTimerActiveDuration(result.value);
+    case SleepTimerType.episode:
+      return l10n.sleepTimerActiveEpisode(result.value);
+  }
+}
+
 class SleepTimerPickerDialog {
   SleepTimerPickerDialog._();
 

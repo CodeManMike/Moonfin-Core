@@ -3,17 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moonfin/l10n/app_localizations.dart';
 import 'package:moonfin/ui/widgets/playback/sleep_timer_picker_dialog.dart';
 
-/// Mirrors VideoPlayerScreen._sleepTimerLabel's formatting logic so it can
-/// be exercised without standing up the full player screen widget tree.
-String sleepTimerLabelFor(AppLocalizations l10n, SleepTimerResult result) {
-  switch (result.type) {
-    case SleepTimerType.duration:
-      return l10n.sleepTimerActiveDuration(result.value);
-    case SleepTimerType.episode:
-      return l10n.sleepTimerActiveEpisode(result.value);
-  }
-}
-
+// This exercises the real `sleepTimerLabelFor` helper that
+// VideoPlayerScreen's private `_sleepTimerLabel` getter delegates to, so a
+// regression in the production formatting logic (e.g. swapped cases, a
+// dropped l10n call, or reading the wrong field) will fail this test.
 void main() {
   late AppLocalizations l10n;
 
