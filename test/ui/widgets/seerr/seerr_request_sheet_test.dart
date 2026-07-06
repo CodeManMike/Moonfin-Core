@@ -49,6 +49,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(SeerrRequestSheet), findsOneWidget);
+    // Season chips are only rendered once "All Seasons" is unchecked.
+    expect(find.byType(FilterChip), findsNothing);
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FilterChip), findsNWidgets(3));
+    expect(find.text('S1'), findsOneWidget);
+    expect(find.text('S2'), findsOneWidget);
+    expect(find.text('S3'), findsOneWidget);
   });
 }
