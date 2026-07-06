@@ -110,9 +110,10 @@ void main() {
 
     // The old per-genre artwork enrichment loop called getItems once for
     // *every* genre in the list to fetch preview images. The new right-hand
-    // GenreItemsPanel calls getItems at most once, only for the single
+    // GenreItemsPanel calls getItems exactly once, only for the single
     // genre that is currently selected/focused - never once per genre in
-    // the list.
+    // the list, and never zero times (which would mean the panel silently
+    // stopped fetching for the selected genre).
     verify(
       () => itemsApi.getItems(
         parentId: any(named: 'parentId'),
@@ -130,7 +131,7 @@ void main() {
         enableImageTypes: any(named: 'enableImageTypes'),
         imageTypeLimit: any(named: 'imageTypeLimit'),
       ),
-    ).called(lessThanOrEqualTo(1));
+    ).called(1);
   });
 
   testWidgets('moving dpad focus down the list updates the right panel', (
