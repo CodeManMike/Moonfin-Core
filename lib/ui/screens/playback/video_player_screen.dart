@@ -2662,10 +2662,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _showControls({bool focusSeekbar = false}) {
-    if (shouldSuppressCinemaChrome(
-      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
-      isCurrentItemPreroll: _isCurrentPreroll,
-    )) {
+    // Cinema Mode auto-hides chrome for the main feature (handled passively by
+    // _syncPrerollOsdState on queue/preroll transitions), but a user-initiated
+    // request to show controls must always work - only genuine preroll content
+    // blocks this, matching pre-Cinema-Mode behavior.
+    if (_isCurrentPreroll) {
       _syncPrerollOsdState();
       return;
     }
@@ -2677,10 +2678,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   }
 
   void _toggleControls() {
-    if (shouldSuppressCinemaChrome(
-      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
-      isCurrentItemPreroll: _isCurrentPreroll,
-    )) {
+    if (_isCurrentPreroll) {
       _syncPrerollOsdState();
       return;
     }
@@ -3411,10 +3409,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final hideOsdForPreroll = shouldSuppressCinemaChrome(
-      cinemaModeEnabled: _prefs.get(UserPreferences.cinemaModeEnabled),
-      isCurrentItemPreroll: _isCurrentPreroll,
-    );
+    // Only genuine preroll content blocks rendering the controls overlay here.
+    // Cinema Mode's chrome suppression for the main feature is applied
+    // passively (via _syncPrerollOsdState forcing _controlsVisible false on
+    // transition), not as a permanent block on the render gate itself, so a
+    // user-initiated _showControls()/_toggleControls() can still surface them.
+    final hideOsdForPreroll = _isCurrentPreroll;
     if (_isInPiP) {
       return Scaffold(
         backgroundColor: Colors.black,
