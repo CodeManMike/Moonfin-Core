@@ -25,8 +25,9 @@ class MusicBrowseViewModel extends ChangeNotifier {
   String _libraryName = '';
   String get libraryName => _libraryName;
 
-  AggregatedItem? _focusedItem;
-  AggregatedItem? get focusedItem => _focusedItem;
+  final ValueNotifier<AggregatedItem?> focusedItemNotifier = ValueNotifier(
+    null,
+  );
 
   String get _serverId => _client.baseUrl;
   ImageApi get imageApi => _dataSource.imageApi;
@@ -38,9 +39,15 @@ class MusicBrowseViewModel extends ChangeNotifier {
   }) : _dataSource = dataSource,
        _client = client;
 
+  // Deliberately not routed through the ViewModel's own notifyListeners():
+  // focus changes on every single D-pad move, and only the header widget
+  // (title/subtitle overlay) needs to react to it. Funnelling this through
+  // the main ChangeNotifier stream forced the whole screen (including every
+  // visible row and card) to rebuild on every focus change - a real,
+  // measurable source of D-pad navigation jank.
   void setFocusedItem(AggregatedItem? item) {
-    _focusedItem = item;
-    notifyListeners();
+    if (focusedItemNotifier.value?.id == item?.id) return;
+    focusedItemNotifier.value = item;
   }
 
   Future<void> load() async {
@@ -235,5 +242,11 @@ class MusicBrowseViewModel extends ChangeNotifier {
       return ('DateCreated', 'Descending');
     }
     return ('SortName', 'Ascending');
+  }
+
+  @override
+  void dispose() {
+    focusedItemNotifier.dispose();
+    super.dispose();
   }
 }

@@ -111,11 +111,17 @@ class _MusicBrowseScreenState extends State<MusicBrowseScreen> {
           Container(color: _navyBackground.withAlpha(191)),
           Column(
             children: [
-              _MusicHeader(
-                libraryName: _vm.libraryName,
-                focusedItem: _vm.focusedItem,
-                vm: _vm,
-                onFilterTap: () => _showFilterDialog(context),
+              // Scopes rebuilds from a pure focus change to just the header -
+              // the surrounding Column/rows do not need to rebuild when only
+              // the focused item changes.
+              ListenableBuilder(
+                listenable: _vm.focusedItemNotifier,
+                builder: (context, _) => _MusicHeader(
+                  libraryName: _vm.libraryName,
+                  focusedItem: _vm.focusedItemNotifier.value,
+                  vm: _vm,
+                  onFilterTap: () => _showFilterDialog(context),
+                ),
               ),
               const SizedBox(height: 10),
               Expanded(
