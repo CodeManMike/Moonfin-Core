@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -36,8 +34,6 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
   late final LibraryViewViewModel _vm;
   final _backgroundService = GetIt.instance<BackgroundService>();
   final _prefs = GetIt.instance<UserPreferences>();
-  StreamSubscription<String?>? _backgroundSub;
-  String? _backdropUrl;
 
   @override
   void initState() {
@@ -49,16 +45,11 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
     );
     _vm.addListener(_onChanged);
     _vm.load();
-    _backgroundSub = _backgroundService.backgroundStream.listen((url) {
-      if (mounted) setState(() => _backdropUrl = url);
-    });
-    _backdropUrl = _backgroundService.currentUrl;
     _prefs.addListener(_onChanged);
   }
 
   @override
   void dispose() {
-    _backgroundSub?.cancel();
     _vm.removeListener(_onChanged);
     _prefs.removeListener(_onChanged);
     _vm.dispose();
@@ -83,23 +74,39 @@ class _LibraryViewScreenState extends State<LibraryViewScreen> {
       RequestInitialFocus(child: _buildContent(context));
 
   Widget _buildContent(BuildContext context) {
-    final hasBackdrop = _backdropUrl != null;
     final desktopScale = _desktopUiScaleFactor();
     return Scaffold(
       backgroundColor: _navyBackground,
       body: Stack(
         children: [
-          if (hasBackdrop)
-            Positioned.fill(
-              child: FullscreenBackdropSwitcher(
-                imageUrl: _backdropUrl!,
-                duration: BackgroundService.transitionDuration,
-              ),
-            ),
-          Positioned.fill(
-            child: Container(
-              color: _navyBackground.withAlpha(hasBackdrop ? 140 : 191),
-            ),
+          // Isolated from the rest of the screen's rebuild: the background
+          // image changes on every item focus, but nothing else here needs
+          // to rebuild when it does.
+          StreamBuilder<String?>(
+            stream: _backgroundService.backgroundStream,
+            initialData: _backgroundService.currentUrl,
+            builder: (context, snapshot) {
+              final backdropUrl = snapshot.data;
+              final hasBackdrop = backdropUrl != null;
+              return Stack(
+                children: [
+                  if (hasBackdrop)
+                    Positioned.fill(
+                      child: FullscreenBackdropSwitcher(
+                        imageUrl: backdropUrl,
+                        duration: BackgroundService.transitionDuration,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: Container(
+                      color: _navyBackground.withAlpha(
+                        hasBackdrop ? 140 : 191,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           Column(
             children: [

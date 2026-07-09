@@ -23,8 +23,9 @@ class LibraryViewViewModel extends ChangeNotifier {
   String? _collectionType;
   String? get collectionType => _collectionType;
 
-  AggregatedItem? _focusedItem;
-  AggregatedItem? get focusedItem => _focusedItem;
+  final ValueNotifier<AggregatedItem?> focusedItemNotifier = ValueNotifier(
+    null,
+  );
 
   String get _serverId => _client.baseUrl;
   ImageApi get imageApi => _dataSource.imageApi;
@@ -36,9 +37,15 @@ class LibraryViewViewModel extends ChangeNotifier {
   })  : _dataSource = dataSource,
         _client = client;
 
+  // Deliberately not routed through the ViewModel's own notifyListeners():
+  // focus changes on every single D-pad move, and nothing on this screen
+  // needs to rebuild in response to it. Funnelling this through the main
+  // ChangeNotifier stream forced the whole screen (including every visible
+  // row) to rebuild on every focus change - a real, measurable source of
+  // D-pad navigation jank.
   void setFocusedItem(AggregatedItem? item) {
-    _focusedItem = item;
-    notifyListeners();
+    if (focusedItemNotifier.value?.id == item?.id) return;
+    focusedItemNotifier.value = item;
   }
 
   Future<void> load() async {
@@ -157,5 +164,11 @@ class LibraryViewViewModel extends ChangeNotifier {
     _rows = [];
     notifyListeners();
     await load();
+  }
+
+  @override
+  void dispose() {
+    focusedItemNotifier.dispose();
+    super.dispose();
   }
 }
