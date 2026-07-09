@@ -56,11 +56,11 @@ class FavoritesViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  AggregatedItem? _focusedItem;
-  AggregatedItem? get focusedItem => _focusedItem;
-
-  Map<String, double> _focusedRatings = const {};
-  Map<String, double> get focusedRatings => _focusedRatings;
+  final ValueNotifier<AggregatedItem?> focusedItemNotifier = ValueNotifier(
+    null,
+  );
+  final ValueNotifier<Map<String, double>> focusedRatingsNotifier =
+      ValueNotifier(const {});
 
   final Map<String, String?> _tmdbIdByItemId = {};
 
@@ -97,10 +97,16 @@ class FavoritesViewModel extends ChangeNotifier {
     _viewStyle = _prefs.get(UserPreferences.favoritesViewStyle);
   }
 
+  // Deliberately not routed through the ViewModel's own notifyListeners():
+  // focus changes on every single D-pad move, and only the header widget
+  // (title/ratings overlay) needs to react to it. Funnelling this through
+  // the main ChangeNotifier stream forced the whole screen (including every
+  // visible row/grid tile) to rebuild on every focus change - a real,
+  // measurable source of D-pad navigation jank.
   void setFocusedItem(AggregatedItem? item) {
-    _focusedItem = item;
-    _focusedRatings = const {};
-    notifyListeners();
+    if (focusedItemNotifier.value?.id == item?.id) return;
+    focusedItemNotifier.value = item;
+    focusedRatingsNotifier.value = const {};
     if (item != null) _loadFocusedRatings(item);
   }
 
@@ -135,9 +141,10 @@ class FavoritesViewModel extends ChangeNotifier {
       tmdbId: tmdbId,
       mediaType: mediaType,
     );
-    if (ratings != null && ratings.isNotEmpty && _focusedItem?.id == item.id) {
-      _focusedRatings = ratings;
-      notifyListeners();
+    if (ratings != null &&
+        ratings.isNotEmpty &&
+        focusedItemNotifier.value?.id == item.id) {
+      focusedRatingsNotifier.value = ratings;
     }
   }
 
@@ -371,5 +378,12 @@ class FavoritesViewModel extends ChangeNotifier {
     _posterSize = value;
     await _prefs.set(UserPreferences.libraryPosterSize, value);
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    focusedItemNotifier.dispose();
+    focusedRatingsNotifier.dispose();
+    super.dispose();
   }
 }

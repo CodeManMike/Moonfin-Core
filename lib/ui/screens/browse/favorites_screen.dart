@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -53,8 +51,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with GridFocusNodeMix
   final _scrollController = ScrollController();
   final _prefs = GetIt.instance<UserPreferences>();
   final _backgroundService = GetIt.instance<BackgroundService>();
-  StreamSubscription<String?>? _backgroundSub;
-  String? _backdropUrl;
   bool _topSnapScheduled = false;
   final Map<FavoriteTypeFilter, GlobalKey<LockedFocusRowState>> _rowKeys = {};
 
@@ -69,16 +65,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> with GridFocusNodeMix
     _vm.addListener(_onChanged);
     _vm.load();
     _scrollController.addListener(_onScroll);
-    _backgroundSub = _backgroundService.backgroundStream.listen((url) {
-      if (mounted) setState(() => _backdropUrl = url);
-    });
-    _backdropUrl = _backgroundService.currentUrl;
     _prefs.addListener(_onChanged);
   }
 
   @override
   void dispose() {
-    _backgroundSub?.cancel();
     _scrollController.dispose();
     _vm.removeListener(_onChanged);
     _prefs.removeListener(_onChanged);
@@ -238,38 +229,61 @@ class _FavoritesScreenState extends State<FavoritesScreen> with GridFocusNodeMix
 
   Widget _buildContent(BuildContext context) {
     final isMobile = _isCompact(context);
-    final hasBackdrop = !isMobile && _backdropUrl != null;
     return Scaffold(
       backgroundColor: _navyBackground,
       body: Stack(
         children: [
-          if (hasBackdrop)
-            Positioned.fill(
-              child: FullscreenBackdropSwitcher(
-                imageUrl: _backdropUrl!,
-                duration: BackgroundService.transitionDuration,
-              ),
-            ),
-          Positioned.fill(
-            child: Container(
-              color: _navyBackground.withAlpha(hasBackdrop ? 115 : 191),
-            ),
+          // Isolated from the rest of the screen's rebuild: the background
+          // image changes on every item focus, but nothing else here needs
+          // to rebuild when it does.
+          StreamBuilder<String?>(
+            stream: _backgroundService.backgroundStream,
+            initialData: _backgroundService.currentUrl,
+            builder: (context, snapshot) {
+              final backdropUrl = snapshot.data;
+              final hasBackdrop = !isMobile && backdropUrl != null;
+              return Stack(
+                children: [
+                  if (hasBackdrop)
+                    Positioned.fill(
+                      child: FullscreenBackdropSwitcher(
+                        imageUrl: backdropUrl,
+                        duration: BackgroundService.transitionDuration,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: Container(
+                      color: _navyBackground.withAlpha(hasBackdrop ? 115 : 191),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           Column(
             children: [
-              _FavoritesHeader(
-                totalCount: _vm.totalCount,
-                focusedItem: _vm.focusedItem,
-                focusedRatings: _vm.focusedRatings,
-                enableAdditionalRatings: _prefs.get(
-                  UserPreferences.enableAdditionalRatings,
+              ListenableBuilder(
+                // Scopes rebuilds from a pure focus change to just this
+                // header - the surrounding Column/body does not need to
+                // rebuild when only the focused item changes.
+                listenable: Listenable.merge([
+                  _vm.focusedItemNotifier,
+                  _vm.focusedRatingsNotifier,
+                ]),
+                builder: (context, _) => _FavoritesHeader(
+                  totalCount: _vm.totalCount,
+                  focusedItem: _vm.focusedItemNotifier.value,
+                  focusedRatings: _vm.focusedRatingsNotifier.value,
+                  enableAdditionalRatings: _prefs.get(
+                    UserPreferences.enableAdditionalRatings,
+                  ),
+                  enabledRatings: _prefs.get(UserPreferences.enabledRatings),
+                  showLabels: _prefs.get(UserPreferences.showRatingLabels),
+                  showBadges: _prefs.get(UserPreferences.showRatingBadges),
+                  onHome: () => context.go(Destinations.home),
+                  onSort: () => _showSortDialog(context),
+                  onSettings: () => _showSettingsDialog(context),
                 ),
-                enabledRatings: _prefs.get(UserPreferences.enabledRatings),
-                showLabels: _prefs.get(UserPreferences.showRatingLabels),
-                showBadges: _prefs.get(UserPreferences.showRatingBadges),
-                onHome: () => context.go(Destinations.home),
-                onSort: () => _showSortDialog(context),
-                onSettings: () => _showSettingsDialog(context),
               ),
               Expanded(child: _buildBody()),
             ],
