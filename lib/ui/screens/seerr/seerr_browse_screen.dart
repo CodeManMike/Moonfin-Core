@@ -879,10 +879,25 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
             for (final option in seerrSortOptions)
               _radioTile(
                 label: option.label,
-                selected: s.sortBy.value == option.value,
+                selected: s.sortBy.field == option.field,
+                trailing: s.sortBy.field == option.field
+                    ? IconButton(
+                        icon: Icon(
+                          s.sortDirection == SortDirection.ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: _seerrAccent,
+                          size: 18,
+                        ),
+                        onPressed: () => vm.toggleSortDirection(),
+                      )
+                    : null,
                 onTap: () {
-                  vm.setSortBy(option);
-                  Navigator.of(context).pop();
+                  if (s.sortBy.field == option.field) {
+                    vm.toggleSortDirection();
+                  } else {
+                    vm.setSortBy(option);
+                  }
                 },
               ),
           ],
@@ -895,6 +910,7 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
     required String label,
     required bool selected,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
@@ -943,6 +959,7 @@ class _SeerrSortDialogState extends State<_SeerrSortDialog> {
                 ),
               ),
             ),
+            ?trailing,
           ],
         ),
       ),

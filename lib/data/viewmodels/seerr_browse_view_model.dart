@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../preference/preference_constants.dart';
 import '../repositories/seerr_repository.dart';
 import '../services/seerr/seerr_api_models.dart';
 
@@ -7,16 +8,28 @@ enum SeerrBrowseFilter { all, available, requested }
 
 class SeerrSortOption {
   final String label;
-  final String value;
-  const SeerrSortOption(this.label, this.value);
+  final String field;
+  final SortDirection defaultDirection;
+  const SeerrSortOption(
+    this.label,
+    this.field, {
+    this.defaultDirection = SortDirection.descending,
+  });
+
+  String apiValueFor(SortDirection direction) =>
+      '$field.${direction == SortDirection.ascending ? 'asc' : 'desc'}';
 }
 
 const seerrSortOptions = [
-  SeerrSortOption('Popularity', 'popularity.desc'),
-  SeerrSortOption('Rating', 'vote_average.desc'),
-  SeerrSortOption('Release Date', 'primary_release_date.desc'),
-  SeerrSortOption('Title', 'original_title.asc'),
-  SeerrSortOption('Revenue', 'revenue.desc'),
+  SeerrSortOption('Popularity', 'popularity'),
+  SeerrSortOption('Rating', 'vote_average'),
+  SeerrSortOption('Release Date', 'primary_release_date'),
+  SeerrSortOption(
+    'Title',
+    'original_title',
+    defaultDirection: SortDirection.ascending,
+  ),
+  SeerrSortOption('Revenue', 'revenue'),
 ];
 
 class SeerrBrowseState {
@@ -27,6 +40,7 @@ class SeerrBrowseState {
   final int currentPage;
   final int totalPages;
   final SeerrSortOption sortBy;
+  final SortDirection sortDirection;
   final SeerrBrowseFilter filter;
   final String letterFilter;
 
@@ -37,7 +51,8 @@ class SeerrBrowseState {
     this.items = const [],
     this.currentPage = 0,
     this.totalPages = 1,
-    this.sortBy = const SeerrSortOption('Popularity', 'popularity.desc'),
+    this.sortBy = const SeerrSortOption('Popularity', 'popularity'),
+    this.sortDirection = SortDirection.descending,
     this.filter = SeerrBrowseFilter.all,
     this.letterFilter = '',
   });
@@ -52,6 +67,7 @@ class SeerrBrowseState {
     int? currentPage,
     int? totalPages,
     SeerrSortOption? sortBy,
+    SortDirection? sortDirection,
     SeerrBrowseFilter? filter,
     String? letterFilter,
   }) =>
@@ -63,6 +79,7 @@ class SeerrBrowseState {
         currentPage: currentPage ?? this.currentPage,
         totalPages: totalPages ?? this.totalPages,
         sortBy: sortBy ?? this.sortBy,
+        sortDirection: sortDirection ?? this.sortDirection,
         filter: filter ?? this.filter,
         letterFilter: letterFilter ?? this.letterFilter,
       );
@@ -92,6 +109,7 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     _state = SeerrBrowseState(
       isLoading: true,
       sortBy: _state.sortBy,
+      sortDirection: _state.sortDirection,
       filter: _state.filter,
       letterFilter: _state.letterFilter,
     );
@@ -138,10 +156,25 @@ class SeerrBrowseViewModel extends ChangeNotifier {
   }
 
   void setSortBy(SeerrSortOption option) {
-    if (option.value == _state.sortBy.value) return;
-    _state = _state.copyWith(sortBy: option);
+    if (option.field == _state.sortBy.field) return;
+    _state = _state.copyWith(
+      sortBy: option,
+      sortDirection: option.defaultDirection,
+    );
     load();
   }
+
+  void setSortDirection(SortDirection direction) {
+    if (direction == _state.sortDirection) return;
+    _state = _state.copyWith(sortDirection: direction);
+    load();
+  }
+
+  void toggleSortDirection() => setSortDirection(
+    _state.sortDirection == SortDirection.ascending
+        ? SortDirection.descending
+        : SortDirection.ascending,
+  );
 
   void setFilter(SeerrBrowseFilter filter) {
     if (filter == _state.filter) return;
@@ -157,10 +190,11 @@ class SeerrBrowseViewModel extends ChangeNotifier {
 
   Future<SeerrDiscoverPage> _fetchPage(int page) {
     final id = filterId != null ? int.tryParse(filterId!) : null;
+    final sortByValue = _state.sortBy.apiValueFor(_state.sortDirection);
     if (mediaType == 'tv') {
       return _repo.discoverTv(
         page: page,
-        sortBy: _state.sortBy.value,
+        sortBy: sortByValue,
         genre: filterType == 'genre' ? id : null,
         network: filterType == 'network' ? id : null,
         keywords: filterType == 'keyword' ? id : null,
@@ -168,7 +202,7 @@ class SeerrBrowseViewModel extends ChangeNotifier {
     }
     return _repo.discoverMovies(
       page: page,
-      sortBy: _state.sortBy.value,
+      sortBy: sortByValue,
       genre: filterType == 'genre' ? id : null,
       studio: filterType == 'studio' ? id : null,
       keywords: filterType == 'keyword' ? id : null,
