@@ -10,10 +10,15 @@ void main() {
       );
     });
 
-    test('focused row on TV in non-fullscreen mode is scaled up', () {
+    // The row itself is never scaled, regardless of focus/platform/layout -
+    // scaling the whole row visually compounded with the per-tile focus scale
+    // already applied by MediaCard/GridButtonCard, making an adjacent
+    // unfocused tile look nearly as "focused" as the real one. Only the tile
+    // that actually has D-pad focus should grow.
+    test('focused row on TV in non-fullscreen mode is not scaled', () {
       expect(
         homeRowFocusScale(isFocused: true, isTV: true, fullScreenRows: false),
-        greaterThan(1.0),
+        1.0,
       );
     });
 

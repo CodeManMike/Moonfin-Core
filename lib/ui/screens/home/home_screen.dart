@@ -547,17 +547,19 @@ class _Backdrop extends StatelessWidget {
 
 /// Scale factor applied to a home row's content when it holds D-pad focus.
 ///
-/// Returns `1.0` (no scaling) unless running on a TV platform in the
-/// non-fullscreen row layout, so the focused-row visual treatment never
-/// shifts sibling rows — see [homeRowFocusExtraSpacing], which is always
-/// zero for the same reason.
+/// Always returns `1.0` (no scaling). The row itself is never scaled on
+/// focus - only the individual tile that actually has D-pad focus scales up
+/// (via MediaCard/GridButtonCard's own focus treatment). Scaling the whole
+/// row on top of that made an adjacent, unfocused tile visually grow almost
+/// as much as the truly-focused one, reading as two highlighted items at
+/// once. Kept as a named hook (rather than removed outright) in case a
+/// distinct, non-tile-scaling row-level treatment is added later.
 double homeRowFocusScale({
   required bool isFocused,
   required bool isTV,
   required bool fullScreenRows,
 }) {
-  if (!isFocused || !isTV || fullScreenRows) return 1.0;
-  return 1.04;
+  return 1.0;
 }
 
 /// Extra vertical spacing reserved after a focused home row.
