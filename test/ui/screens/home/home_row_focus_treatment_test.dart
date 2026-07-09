@@ -49,4 +49,47 @@ void main() {
       );
     });
   });
+
+  group('shouldAllowHoverPreview', () {
+    test('allows hover preview when no row currently has D-pad focus', () {
+      expect(
+        shouldAllowHoverPreview(
+          hoverRowIndex: 2,
+          activeFocusedRowIndex: null,
+        ),
+        isTrue,
+      );
+    });
+
+    test(
+      'allows hover preview in a different row than the one with D-pad focus',
+      () {
+        expect(
+          shouldAllowHoverPreview(
+            hoverRowIndex: 5,
+            activeFocusedRowIndex: 2,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'blocks hover preview in the same row that currently has D-pad focus',
+      () {
+        // This is the stale-hover race: a row's own auto-scroll-on-focus-
+        // change animation can shift a different card under a stationary
+        // mouse cursor, firing onHoverStart for the wrong item and stealing
+        // the preview slot from the item the user actually D-pad-navigated
+        // to. Only the keyboard-driven schedule should win here.
+        expect(
+          shouldAllowHoverPreview(
+            hoverRowIndex: 2,
+            activeFocusedRowIndex: 2,
+          ),
+          isFalse,
+        );
+      },
+    );
+  });
 }

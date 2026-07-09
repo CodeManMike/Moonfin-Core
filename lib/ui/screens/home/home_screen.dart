@@ -575,6 +575,26 @@ double homeRowFocusExtraSpacing({
   return 0.0;
 }
 
+/// Whether a mouse-hover-triggered preview/expansion schedule should be
+/// allowed for the row at [hoverRowIndex], given [activeFocusedRowIndex]
+/// (the row that currently holds real D-pad/keyboard focus, if any).
+///
+/// A row's own auto-scroll-on-focus-change animation can shift a different
+/// card under a stationary mouse cursor mid-scroll, firing onHoverStart for
+/// that card and stealing the preview slot from the item the user actually
+/// navigated to with the D-pad, even though the visual focus highlight
+/// correctly stayed on the real item. Blocking hover from acting within the
+/// same row that currently has D-pad focus prevents that race, while still
+/// allowing genuine mouse-only hovering (no row focused via keyboard) or
+/// hovering a different row than the one being D-pad-navigated.
+bool shouldAllowHoverPreview({
+  required int hoverRowIndex,
+  required int? activeFocusedRowIndex,
+}) {
+  return activeFocusedRowIndex == null ||
+      activeFocusedRowIndex != hoverRowIndex;
+}
+
 class _ContentRows extends StatefulWidget {
   final HomeViewModel viewModel;
   final MediaBarViewModel mediaBarViewModel;
@@ -3958,6 +3978,16 @@ class _ContentRowsState extends State<_ContentRows>
             onHoverStart: () {
               unawaited(_revealAndScrollToPinnedInfo());
               widget.onItemSelected(item);
+              if (!shouldAllowHoverPreview(
+                hoverRowIndex: rowIndex,
+                activeFocusedRowIndex: _activeFocusedRowIndex,
+              )) {
+                // Stale hover from this row's own auto-scroll-on-focus-change
+                // animation shifting a different card under a stationary
+                // mouse cursor. Ignore it entirely rather than tearing down
+                // whatever preview the real D-pad focus already scheduled.
+                return;
+              }
               if (isRowsV2) {
                 if (_mouseHoveredV2Key != previewKey) {
                   setState(() => _mouseHoveredV2Key = previewKey);
