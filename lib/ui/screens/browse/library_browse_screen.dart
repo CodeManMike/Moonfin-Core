@@ -86,8 +86,6 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
   final _scrollController = ScrollController();
   final _prefs = GetIt.instance<UserPreferences>();
   final _backgroundService = GetIt.instance<BackgroundService>();
-  StreamSubscription<String?>? _backgroundSub;
-  String? _backdropUrl;
   _BookMediaTab _bookMediaTab = _BookMediaTab.books;
   _BookOrganizeMode _bookOrganizeMode = _BookOrganizeMode.all;
   final Set<String> _localProgressItemIds = const {};
@@ -107,16 +105,11 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
     _vm.addListener(_onChanged);
     _vm.load();
     _scrollController.addListener(_onScroll);
-    _backgroundSub = _backgroundService.backgroundStream.listen((url) {
-      if (mounted) setState(() => _backdropUrl = url);
-    });
-    _backdropUrl = _backgroundService.currentUrl;
     _prefs.addListener(_onChanged);
   }
 
   @override
   void dispose() {
-    _backgroundSub?.cancel();
     _scrollController.dispose();
     _vm.removeListener(_onChanged);
     _prefs.removeListener(_onChanged);
@@ -570,28 +563,52 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
 
   Widget _buildContent(BuildContext context) {
     final isMobile = _isCompact(context);
-    final hasBackdrop = !isMobile && _backdropUrl != null;
     return Scaffold(
       backgroundColor: _navyBackground,
       body: Stack(
         children: [
-          if (hasBackdrop)
-            Positioned.fill(
-              child: FullscreenBackdropSwitcher(
-                imageUrl: _backdropUrl!,
-                duration: BackgroundService.transitionDuration,
-              ),
-            ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: _navyBackground.withAlpha(hasBackdrop ? 115 : 191),
-              ),
-            ),
+          // Isolated from the rest of the screen's rebuild: the background
+          // image changes on every item focus, but nothing else here needs
+          // to rebuild when it does.
+          StreamBuilder<String?>(
+            stream: _backgroundService.backgroundStream,
+            initialData: _backgroundService.currentUrl,
+            builder: (context, snapshot) {
+              final backdropUrl = snapshot.data;
+              final hasBackdrop = !isMobile && backdropUrl != null;
+              return Stack(
+                children: [
+                  if (hasBackdrop)
+                    Positioned.fill(
+                      child: FullscreenBackdropSwitcher(
+                        imageUrl: backdropUrl,
+                        duration: BackgroundService.transitionDuration,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _navyBackground.withAlpha(
+                          hasBackdrop ? 115 : 191,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           Column(
             children: [
-              _LibraryHeader(
+              ListenableBuilder(
+                // Scopes rebuilds from a pure focus change to just this
+                // header - the surrounding Column/grid does not need to
+                // rebuild when only the focused item changes.
+                listenable: Listenable.merge([
+                  _vm.focusedItemNotifier,
+                  _vm.focusedRatingsNotifier,
+                ]),
+                builder: (context, _) => _LibraryHeader(
                 libraryName: () {
                   if (_vm.includeItemTypes != null &&
                       _vm.includeItemTypes!.isNotEmpty) {
@@ -607,8 +624,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                   return _vm.libraryName;
                 }(),
                 totalCount: _vm.totalCount,
-                focusedItem: _vm.focusedItem,
-                focusedRatings: _vm.focusedRatings,
+                focusedItem: _vm.focusedItemNotifier.value,
+                focusedRatings: _vm.focusedRatingsNotifier.value,
                 enableAdditionalRatings: _prefs.get(
                   UserPreferences.enableAdditionalRatings,
                 ),
@@ -638,6 +655,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen>
                 onPlayedFilterChanged: (status) => _vm.setPlayedFilter(status),
                 onFavoriteFilterChanged: (value) =>
                     _vm.setFavoriteFilter(value),
+                ),
               ),
               Expanded(child: _buildBody()),
             ],
