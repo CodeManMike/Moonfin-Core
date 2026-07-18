@@ -921,6 +921,24 @@ class PluginSyncService extends ChangeNotifier {
         UserPreferences.detailScreenStyle,
         enumValues: prefs.DetailScreenStyle.values,
       );
+      _applyScreensaverMode(resolved);
+      _applyBool(
+        resolved,
+        'cinemaModeEnabled',
+        UserPreferences.cinemaModeEnabled,
+      );
+      _applyString(
+        resolved,
+        'libraryGridDensity',
+        UserPreferences.libraryGridDensity,
+        enumValues: prefs.GridDensity.values,
+      );
+      _applyBool(resolved, 'confirmExit', UserPreferences.confirmExit);
+      _applyStringList(
+        resolved,
+        'blockedRatings',
+        UserPreferences.blockedParentalRatings,
+      );
       _applyBool(
         resolved,
         'fullScreenRows',
@@ -1534,6 +1552,33 @@ class PluginSyncService extends ChangeNotifier {
     }
   }
 
+  void _applyScreensaverMode(Map<String, dynamic> data) {
+    final modeFromServer = _readString(data, 'screensaverMode');
+    if (modeFromServer == null || modeFromServer.trim().isEmpty) return;
+
+    if (modeFromServer.toLowerCase() == 'off') {
+      _store.set(
+        _prefs.getEffectivePreference(UserPreferences.screensaverEnabled),
+        false,
+      );
+      return;
+    }
+
+    final match = prefs.ScreensaverMode.values.where(
+      (e) => e.name.toLowerCase() == modeFromServer.toLowerCase(),
+    );
+    if (match.isEmpty) return;
+
+    _store.set(
+      _prefs.getEffectivePreference(UserPreferences.screensaverEnabled),
+      true,
+    );
+    _store.set(
+      _prefs.getEffectivePreference(UserPreferences.screensaverMode),
+      match.first,
+    );
+  }
+
   List<String> _csvToList(Preference<String> pref) {
     return _prefs.get(pref).split(',').where((s) => s.isNotEmpty).toList();
   }
@@ -1554,6 +1599,12 @@ class PluginSyncService extends ChangeNotifier {
       'cardFocusExpansion': _prefs.get(UserPreferences.cardFocusExpansion),
       'homeRowsStyle': _prefs.get(UserPreferences.homeRowsStyle).name,
       'detailScreenStyle': _prefs.get(UserPreferences.detailScreenStyle).name,
+      'screensaverMode': _prefs.get(UserPreferences.screensaverEnabled)
+          ? _prefs.get(UserPreferences.screensaverMode).name
+          : 'off',
+      'cinemaModeEnabled': _prefs.get(UserPreferences.cinemaModeEnabled),
+      'libraryGridDensity': _prefs.get(UserPreferences.libraryGridDensity).name,
+      'confirmExit': _prefs.get(UserPreferences.confirmExit),
       'homeImageTypeContinueWatching': _prefs
           .get(UserPreferences.homeRowImageType(prefs.HomeSectionType.resume))
           .name,
@@ -1645,6 +1696,7 @@ class PluginSyncService extends ChangeNotifier {
       'seerrEnabled': _prefs.get(UserPreferences.seerrEnabled),
       'seerrBlockNsfw': _prefs.get(UserPreferences.seerrBlockNsfw),
       'mdblistRatingSources': _csvToList(UserPreferences.enabledRatings),
+      'blockedRatings': _csvToList(UserPreferences.blockedParentalRatings),
       'homeRowOrder': _prefs.homeSectionsConfig
           .where((c) => c.enabled)
           .map((c) => c.type.serializedName)
