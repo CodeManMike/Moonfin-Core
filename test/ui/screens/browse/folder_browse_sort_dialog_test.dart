@@ -177,4 +177,53 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'tapping an already-selected sort option reverses direction instead of '
+    'being a no-op, and the dialog stays open so the arrow icon is visible',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const FolderBrowseScreen(folderId: 'folder-123'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+
+      // "Name" is the default selection - tapping it again should toggle
+      // direction rather than being swallowed by setSortBy's same-value
+      // early-return guard.
+      expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+
+      await tester.tap(find.text('Name'));
+      await tester.pumpAndSettle();
+
+      // The dialog is still open - direction toggling is not a "pick and
+      // close" action like choosing a different sort field is.
+      expect(find.text('Name'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
+      expect(
+        prefs.get(UserPreferences.folderBrowseSortDirection('folder-123')),
+        SortDirection.descending,
+      );
+
+      final verification = verify(() => itemsApi.getItems(
+            parentId: any(named: 'parentId'),
+            recursive: any(named: 'recursive'),
+            sortBy: any(named: 'sortBy'),
+            sortOrder: captureAny(named: 'sortOrder'),
+            startIndex: any(named: 'startIndex'),
+            limit: any(named: 'limit'),
+            fields: any(named: 'fields'),
+            enableImageTypes: any(named: 'enableImageTypes'),
+            imageTypeLimit: any(named: 'imageTypeLimit'),
+            enableTotalRecordCount: any(named: 'enableTotalRecordCount'),
+          ));
+      expect(verification.captured.last, 'Descending');
+    },
+  );
 }

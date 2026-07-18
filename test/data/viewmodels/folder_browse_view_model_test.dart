@@ -41,4 +41,40 @@ void main() {
 
     expect(vm.sortBy, LibrarySortBy.rating);
   });
+
+  test('sort direction defaults to ascending', () async {
+    final prefs = await _prefs();
+    final vm = FolderBrowseViewModel.forTesting(prefs: prefs, folderId: 'folder-123');
+
+    expect(vm.sortDirection, SortDirection.ascending);
+  });
+
+  test('toggleSortDirection flips and persists the direction under the folder-scoped preference key', () async {
+    final prefs = await _prefs();
+    final vm = FolderBrowseViewModel.forTesting(prefs: prefs, folderId: 'folder-123');
+
+    await vm.toggleSortDirection();
+
+    expect(vm.sortDirection, SortDirection.descending);
+    expect(
+      prefs.get(UserPreferences.folderBrowseSortDirection('folder-123')),
+      SortDirection.descending,
+    );
+
+    await vm.toggleSortDirection();
+
+    expect(vm.sortDirection, SortDirection.ascending);
+  });
+
+  test('a previously persisted sort direction is read back on construction', () async {
+    final prefs = await _prefs();
+    await prefs.set(
+      UserPreferences.folderBrowseSortDirection('folder-456'),
+      SortDirection.descending,
+    );
+
+    final vm = FolderBrowseViewModel.forTesting(prefs: prefs, folderId: 'folder-456');
+
+    expect(vm.sortDirection, SortDirection.descending);
+  });
 }

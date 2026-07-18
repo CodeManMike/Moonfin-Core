@@ -572,9 +572,25 @@ class _FolderSortDialogState extends State<_FolderSortDialog> {
               _radioTile(
                 label: option.displayName,
                 selected: vm.sortBy == option,
+                trailing: vm.sortBy == option
+                    ? IconButton(
+                        icon: Icon(
+                          vm.sortDirection == SortDirection.ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: AppColorScheme.accent,
+                          size: 18,
+                        ),
+                        onPressed: () => vm.toggleSortDirection(),
+                      )
+                    : null,
                 onTap: () {
-                  vm.setSortBy(option);
-                  Navigator.of(context).pop();
+                  if (vm.sortBy == option) {
+                    vm.toggleSortDirection();
+                  } else {
+                    vm.setSortBy(option);
+                    Navigator.of(context).pop();
+                  }
                 },
                 onSurface: onSurface,
               ),
@@ -589,6 +605,7 @@ class _FolderSortDialogState extends State<_FolderSortDialog> {
     required bool selected,
     required VoidCallback onTap,
     required Color onSurface,
+    Widget? trailing,
   }) {
     final accent = AppColorScheme.accent;
     return InkWell(
@@ -633,6 +650,7 @@ class _FolderSortDialogState extends State<_FolderSortDialog> {
                 ),
               ),
             ),
+            if (trailing != null) trailing,
           ],
         ),
       ),

@@ -40,6 +40,9 @@ class FolderBrowseViewModel extends ChangeNotifier {
        _serverId = serverId,
        _rootFolderId = rootFolderId {
     _sortBy = _prefs.get(UserPreferences.folderBrowseSortBy(_rootFolderId));
+    _sortDirection = _prefs.get(
+      UserPreferences.folderBrowseSortDirection(_rootFolderId),
+    );
   }
 
   @visibleForTesting
@@ -60,10 +63,16 @@ class FolderBrowseViewModel extends ChangeNotifier {
        _serverId = null,
        _rootFolderId = folderId {
     _sortBy = _prefs.get(UserPreferences.folderBrowseSortBy(_rootFolderId));
+    _sortDirection = _prefs.get(
+      UserPreferences.folderBrowseSortDirection(_rootFolderId),
+    );
   }
 
   late LibrarySortBy _sortBy;
   LibrarySortBy get sortBy => _sortBy;
+
+  late SortDirection _sortDirection;
+  SortDirection get sortDirection => _sortDirection;
 
   ImageApi get imageApi => _client.imageApi;
 
@@ -147,6 +156,22 @@ class FolderBrowseViewModel extends ChangeNotifier {
     await loadFolder(currentFolderId.isEmpty ? _rootFolderId : currentFolderId);
   }
 
+  Future<void> setSortDirection(SortDirection value) async {
+    if (_sortDirection == value) return;
+    _sortDirection = value;
+    await _prefs.set(
+      UserPreferences.folderBrowseSortDirection(_rootFolderId),
+      value,
+    );
+    await loadFolder(currentFolderId.isEmpty ? _rootFolderId : currentFolderId);
+  }
+
+  Future<void> toggleSortDirection() => setSortDirection(
+    _sortDirection == SortDirection.ascending
+        ? SortDirection.descending
+        : SortDirection.ascending,
+  );
+
   Future<void> loadMore() async {
     if (_loadingMore || !hasMore) return;
     _loadingMore = true;
@@ -221,12 +246,15 @@ class FolderBrowseViewModel extends ChangeNotifier {
     required int startIndex,
   }) async {
     final sortByValue = _sortBy.apiValue;
+    final sortOrderValue = _sortDirection == SortDirection.ascending
+        ? 'Ascending'
+        : 'Descending';
     try {
       return await _client.itemsApi.getItems(
         parentId: parentId,
         recursive: false,
         sortBy: 'IsFolder,$sortByValue',
-        sortOrder: 'Ascending',
+        sortOrder: sortOrderValue,
         startIndex: startIndex,
         limit: _pageSize,
         fields: _fields,
@@ -244,7 +272,7 @@ class FolderBrowseViewModel extends ChangeNotifier {
         parentId: parentId,
         recursive: false,
         sortBy: sortByValue,
-        sortOrder: 'Ascending',
+        sortOrder: sortOrderValue,
         startIndex: startIndex,
         limit: _pageSize,
         fields: _fields,

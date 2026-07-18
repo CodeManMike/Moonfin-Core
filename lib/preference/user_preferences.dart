@@ -1866,6 +1866,14 @@ class UserPreferences extends ChangeNotifier {
         values: LibrarySortBy.values,
       );
 
+  static EnumPreference<SortDirection> folderBrowseSortDirection(
+    String folderId,
+  ) => EnumPreference(
+    key: 'folder_browse_sort_dir_$folderId',
+    defaultValue: SortDirection.ascending,
+    values: SortDirection.values,
+  );
+
   static EnumPreference<SortDirection> librarySortDirection(String libraryId) =>
       EnumPreference(
         key: 'library_sort_dir_$libraryId',
