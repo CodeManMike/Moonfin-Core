@@ -1807,7 +1807,7 @@ class UserPreferences extends ChangeNotifier {
 
   static final updateNotificationsEnabled = Preference(
     key: 'update_notifications_enabled',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static final seasonalSurprise = Preference(
